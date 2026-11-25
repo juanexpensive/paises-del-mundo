@@ -37,7 +37,7 @@ let onMapClick = () => {};
 let pinnedUntil = 0;
 
 function showTip(id, event, kind = '') {
-  const box = $('.map-wrap').getBoundingClientRect();
+  const box = $('.stage').getBoundingClientRect();
   tooltip.textContent = nameOf(id);
   tooltip.className = `tooltip ${kind}`;
   tooltip.style.left = `${event.clientX - box.left}px`;
@@ -85,9 +85,19 @@ function chips(name, options, current, onChange) {
 
 const fmtTime = (s) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
 
+// Paneles plegables (boton Mas)
+function setDrawer(id, open) {
+  const drawer = document.getElementById(id);
+  drawer.hidden = !open;
+  document.querySelector(`[data-drawer="${id}"]`).setAttribute('aria-expanded', String(open));
+}
+document.querySelectorAll('[data-drawer]').forEach((b) =>
+  b.addEventListener('click', () => setDrawer(b.dataset.drawer, document.getElementById(b.dataset.drawer).hidden)),
+);
+
 // ---------- RETO ----------
 const TIME_LIMIT = { all: 15 * 60, Africa: 5 * 60, America: 4 * 60, Asia: 5 * 60, Europa: 5 * 60, Oceania: 2 * 60 };
-const HELP_TEXT = '\u00bfNo sabes cu\u00e1l es? Pulsa el pa\u00eds en el mapa: te digo su nombre y cuenta como fallo.';
+const HELP_TEXT = '\u00bfNo sabes alguno? P\u00falsalo en el mapa: ver\u00e1s su nombre y contar\u00e1 como fallo.';
 
 const reto = {
   region: 'all',
@@ -129,6 +139,7 @@ const reto = {
     input.disabled = false;
     input.value = '';
     $('#reto-result').hidden = true;
+    setDrawer('reto-drawer', false);
     $('#reto-giveup').disabled = false;
     this.feedback(HELP_TEXT, '');
     this.render();
@@ -190,7 +201,7 @@ const reto = {
     this.revealed.add(id);
     map.setClass(id, 'missed');
     this.pushRecent(id, 'bad');
-    this.feedback(`Es ${nameOf(id)}. Cuenta como fallo: \u00a1a la pr\u00f3xima lo sabr\u00e1s!`, 'bad');
+    this.feedback(`${nameOf(id)}: cuenta como fallo.`, 'bad');
     this.render();
     $('#reto-input').focus({ preventScroll: true });
     if (this.found.size + this.revealed.size === this.ids.length) this.end();
@@ -225,9 +236,19 @@ const reto = {
     $('#reto-result-title').textContent =
       missed.length === 0 ? `\u00a1Perfecto! Los ${total} en ${fmtTime(used)}` : `Has acertado ${this.found.size} de ${total}`;
     $('#reto-practice').hidden = missed.length === 0;
-    this.feedback(missed.length ? 'Pasa el rat\u00f3n por el mapa para ver los nombres que te faltaron.' : '', '');
+    this.feedback(
+      missed.length
+        ? `${this.found.size} de ${total}. En rojo los que te faltaron: toca o pasa el rat\u00f3n por encima.`
+        : $('#reto-result-title').textContent,
+      missed.length ? '' : 'good',
+    );
     const box = $('#reto-missed');
     box.innerHTML = '';
+    if (missed.length) {
+      const summary = document.createElement('summary');
+      summary.textContent = `Ver los ${missed.length} que faltaron`;
+      box.append(summary);
+    }
     for (const c of CONTINENTS) {
       const list = missed.filter((id) => BY_ID.get(id).continent === c.id);
       if (!list.length) continue;
@@ -257,7 +278,7 @@ const reto = {
     $('#reto-count').textContent = this.found.size;
     $('#reto-total').textContent = `/${this.ids.length}`;
     $('#reto-miss').textContent = this.revealed.size;
-    $('#reto-timer').textContent = fmtTime(this.left);
+    $('#reto-timer').textContent = this.ended ? 'Fin' : fmtTime(this.left);
     $('#reto-timer').classList.toggle('low', this.running && this.left <= 30);
     const best = store.get('paises-records', {})[this.region];
     $('#reto-best').textContent = best ? `Tu r\u00e9cord: ${best.found}/${this.ids.length} en ${fmtTime(best.time)}` : '';
@@ -271,16 +292,20 @@ const reto = {
       recent.append(li);
     }
 
-    const bars = $('#reto-bars');
-    bars.innerHTML = '';
+    // Leyenda del mapa: color de cada continente y cuantos llevas.
+    const legend = $('#legend');
+    legend.innerHTML = '';
     const conts = this.region === 'all' ? CONTINENTS : CONTINENTS.filter((c) => c.id === this.region);
     for (const c of conts) {
       const ids = idsIn(c.id);
       const n = ids.filter((id) => this.found.has(id)).length;
       const li = document.createElement('li');
-      li.innerHTML = `<span class="bar-label"></span><span class="bar"><span style="width:${(n / ids.length) * 100}%"></span></span><span class="bar-n">${n}/${ids.length}</span>`;
-      li.firstChild.textContent = c.label;
-      bars.append(li);
+      li.dataset.cont = c.id;
+      li.innerHTML = '<span class="swatch"></span><span class="legend-name"></span><span class="legend-short" aria-hidden="true"></span><span class="legend-n"></span>';
+      li.children[1].textContent = c.label;
+      li.children[2].textContent = c.label.slice(0, 2);
+      li.children[3].textContent = `${n}/${ids.length}`;
+      legend.append(li);
     }
   },
 };
@@ -321,6 +346,7 @@ const practice = {
   leave() {
     clearTimeout(this.nextTimer);
     map.clearClass('target');
+    map.setTarget(null);
   },
   start() {
     this.pool = this.region === 'fallos' ? store.get('paises-ultimos-fallos', []) : idsIn(this.region);
@@ -332,6 +358,7 @@ const practice = {
     this.renderStats();
     if (empty) {
       map.clearClass('target');
+    map.setTarget(null);
       return map.reset();
     }
     this.next();
@@ -339,6 +366,7 @@ const practice = {
   next() {
     clearTimeout(this.nextTimer);
     map.clearClass('target');
+    map.setTarget(null);
     tooltip.hidden = true;
     this.target = pickNext(this.pool, progress, this.recent);
     this.recent = [...this.recent, this.target].slice(-Math.min(5, this.pool.length - 1));
@@ -346,6 +374,7 @@ const practice = {
     this.failed = false;
     this.done = false;
     map.setClass(this.target, 'target');
+    map.setTarget(this.target);
     map.zoomToCountry(this.target);
     const input = $('#practice-input');
     input.value = '';
@@ -466,7 +495,7 @@ const practice = {
     const m = progress.mastered(ids);
     $('#practice-streak').textContent = this.streak;
     $('#practice-mastered').textContent = `${m}/${ids.length}`;
-    $('#practice-bar').style.width = `${(m / ids.length) * 100}%`;
+    $('#practice-bar').style.transform = `scaleX(${m / ids.length})`;
   },
 };
 

@@ -5,8 +5,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Quiz de pa&iacute;ses del mundo en espa&ntilde;ol: aprende los 197 pa&iacute;ses</title>
     <meta name="description" content="Juego gratis para aprender los nombres de los 197 pa&iacute;ses del mundo en espa&ntilde;ol. Escr&iacute;belos contra el reloj en el mapa, estudia por continentes y practica con repetici&oacute;n espaciada." />
-    <meta name="theme-color" content="#1d6f5f" />
+    <meta name="theme-color" content="#8fc1de" />
     <link rel="canonical" href="https://juanexpensive.github.io/paises-del-mundo/" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..800&display=swap" />
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
     <meta property="og:type" content="website" />
     <meta property="og:locale" content="es_ES" />
@@ -35,85 +38,77 @@
   </head>
   <body>
     <header class="top">
-      <h1 class="brand"><span class="brand-mark" aria-hidden="true"></span><span class="brand-text">Pa&iacute;ses del mundo</span></h1>
-      <nav class="tabs" role="tablist">
+      <h1 class="brand">Pa&iacute;ses del mundo</h1>
+      <nav class="tabs" role="tablist" aria-label="Modo de juego">
         <button class="tab" role="tab" data-mode="reto">Reto</button>
         <button class="tab" role="tab" data-mode="practicar">Practicar</button>
       </nav>
     </header>
 
-    <main class="layout">
-      <section class="map-wrap">
-        <div id="map"></div>
-        <div class="map-tools">
-          <button data-zoom="in" aria-label="Acercar"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 3v10M3 8h10" /></svg></button>
-          <button data-zoom="out" aria-label="Alejar"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8h10" /></svg></button>
-          <button data-zoom="reset" aria-label="Ver todo el mapa"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2.5 6V2.5H6M10 2.5h3.5V6M13.5 10v3.5H10M6 13.5H2.5V10" /></svg></button>
-        </div>
-        <div id="tooltip" class="tooltip" hidden></div>
-      </section>
+    <main class="stage">
+      <div id="map" class="map-wrap"></div>
+      <div class="map-tools">
+        <button data-zoom="in" aria-label="Acercar"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 3v10M3 8h10" /></svg></button>
+        <button data-zoom="out" aria-label="Alejar"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8h10" /></svg></button>
+        <button data-zoom="reset" aria-label="Ver todo el mapa"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2.5 6V2.5H6M10 2.5h3.5V6M13.5 10v3.5H10M6 13.5H2.5V10" /></svg></button>
+      </div>
+      <div id="tooltip" class="tooltip" hidden></div>
+      <ul id="legend" class="legend" aria-label="Progreso por continente"></ul>
 
-      <aside class="panel">
-        <!-- RETO -->
-        <section class="mode" data-panel="reto" hidden>
-          <div class="chips" data-chips="reto"></div>
-          <div class="board">
-            <div class="board-cell">
-              <span class="board-label">Acertados</span>
-              <span class="board-value"><strong id="reto-count">0</strong><span id="reto-total">/197</span></span>
-            </div>
-            <div class="board-cell">
-              <span class="board-label">Fallados</span>
-              <span class="board-value"><strong id="reto-miss">0</strong></span>
-            </div>
-            <div class="board-cell">
-              <span class="board-label">Tiempo</span>
-              <span class="board-value"><strong id="reto-timer" class="timer">15:00</strong></span>
-            </div>
+      <!-- RETO -->
+      <section class="hud" data-panel="reto" hidden>
+        <div id="reto-drawer" class="drawer" hidden>
+          <div class="chips" data-chips="reto" aria-label="Regi&oacute;n"></div>
+          <div id="reto-result" class="result" hidden>
+            <h2 id="reto-result-title"></h2>
+            <button id="reto-practice" class="btn">Practicar los que me faltaron</button>
+            <details id="reto-missed" class="missed"></details>
           </div>
-          <input id="reto-input" class="big-input" type="text" autocomplete="off" spellcheck="false" aria-label="Nombre de un pa&iacute;s" placeholder="Escribe un pa&iacute;s para empezar" />
-          <p id="reto-feedback" class="feedback" aria-live="polite">&iquest;No sabes cu&aacute;l es? Pulsa el pa&iacute;s en el mapa: te digo su nombre y cuenta como fallo.</p>
           <ol id="reto-recent" class="recent" aria-label="&Uacute;ltimos pa&iacute;ses"></ol>
-          <ul id="reto-bars" class="bars"></ul>
+          <p id="reto-best" class="muted"></p>
           <div class="row">
             <button id="reto-giveup" class="btn ghost">Rendirse</button>
             <button id="reto-restart" class="btn ghost">Empezar de nuevo</button>
           </div>
-          <p id="reto-best" class="muted"></p>
-          <div id="reto-result" class="result" hidden>
-            <h2 id="reto-result-title"></h2>
-            <button id="reto-practice" class="btn">Practicar los que me faltaron</button>
-            <div id="reto-missed"></div>
+        </div>
+        <p id="reto-feedback" class="feedback" aria-live="polite"></p>
+        <div class="hud-bar">
+          <input id="reto-input" class="hud-input" type="text" autocomplete="off" spellcheck="false" aria-label="Nombre de un pa&iacute;s" placeholder="Escribe un pa&iacute;s" />
+          <div class="hud-stats" aria-label="Marcador">
+            <span title="Acertados"><strong id="reto-count">0</strong><span id="reto-total">/197</span></span>
+            <span class="miss" title="Fallados"><strong id="reto-miss">0</strong> fallos</span>
+            <strong id="reto-timer" class="timer" title="Tiempo restante">15:00</strong>
           </div>
-        </section>
+          <button class="hud-more" data-drawer="reto-drawer" aria-expanded="false" aria-controls="reto-drawer">M&aacute;s</button>
+        </div>
+      </section>
 
-        <!-- PRACTICAR -->
-        <section class="mode" data-panel="practicar" hidden>
-          <p class="lead">&iquest;Qu&eacute; pa&iacute;s est&aacute; marcado? Los que falles volver&aacute;n a salir m&aacute;s a menudo.</p>
-          <div class="chips" data-chips="practicar"></div>
+      <!-- PRACTICAR -->
+      <section class="hud" data-panel="practicar" hidden>
+        <div id="practice-drawer" class="drawer" hidden>
+          <div class="chips" data-chips="practicar" aria-label="Regi&oacute;n"></div>
           <div class="segmented">
             <button data-pmode="escribir">Escribir</button>
             <button data-pmode="opciones">4 opciones</button>
           </div>
-          <div id="practice-empty" class="muted" hidden>No hay pa&iacute;ses en esta lista todav&iacute;a. Juega un reto para tener fallos que repasar.</div>
-          <div id="practice-box">
-            <input id="practice-input" class="big-input" type="text" autocomplete="off" spellcheck="false" placeholder="Nombre del pa&iacute;s..." />
-            <div id="practice-options" class="options"></div>
-            <div class="row">
-              <button id="practice-hint" class="btn ghost">Pista</button>
-              <button id="practice-skip" class="btn ghost">No lo s&eacute;</button>
-              <button id="practice-next" class="btn" hidden>Siguiente</button>
-            </div>
-            <p id="practice-feedback" class="feedback" aria-live="polite"></p>
-          </div>
           <div class="stats">
-            <div><strong id="practice-streak">0</strong><span class="muted"> racha</span></div>
-            <div><strong id="practice-mastered">0</strong><span class="muted" id="practice-mastered-total"> dominados</span></div>
+            <span><strong id="practice-streak">0</strong> de racha</span>
+            <span><strong id="practice-mastered">0</strong> dominados</span>
           </div>
           <div class="progress"><div id="practice-bar"></div></div>
           <button id="practice-reset" class="link">Borrar mi progreso</button>
-        </section>
-      </aside>
+        </div>
+        <p id="practice-empty" class="feedback" hidden>No hay pa&iacute;ses en esta lista todav&iacute;a. Juega un reto para tener fallos que repasar.</p>
+        <p id="practice-feedback" class="feedback" aria-live="polite"></p>
+        <div id="practice-box" class="hud-bar">
+          <input id="practice-input" class="hud-input" type="text" autocomplete="off" spellcheck="false" aria-label="&iquest;Qu&eacute; pa&iacute;s est&aacute; marcado?" placeholder="&iquest;Qu&eacute; pa&iacute;s es?" />
+          <div id="practice-options" class="options"></div>
+          <button id="practice-hint" class="btn ghost">Pista</button>
+          <button id="practice-skip" class="btn ghost">No lo s&eacute;</button>
+          <button id="practice-next" class="btn" hidden>Siguiente</button>
+          <button class="hud-more" data-drawer="practice-drawer" aria-expanded="false" aria-controls="practice-drawer">M&aacute;s</button>
+        </div>
+      </section>
     </main>
 
     <article class="about">

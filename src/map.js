@@ -6,10 +6,9 @@ import 'd3-transition';
 import world from 'world-atlas/countries-50m.json';
 import { BY_ID, MAP_ALIASES, MISSING_POINTS } from './countries.js';
 
-const W = 1000;
-const H = 520;
-const SMALL_AREA = 22; // px2: por debajo se dibuja ademas un punto para poder verlo y pulsarlo
-const DOT_R = 3.2;
+const SMALL_AREA = 30; // px2: por debajo se dibuja ademas un punto para poder verlo y pulsarlo
+const DOT_R = 2.8; // radio en pixeles de pantalla, igual con cualquier zoom
+const RING_R = 18;
 
 // Recuadros [lon, lat] para encuadrar cada continente (Rusia estropearia los limites automaticos de Europa).
 const CONTINENT_BOX = {
@@ -20,18 +19,27 @@ const CONTINENT_BOX = {
   Oceania: [[112, -48], [180, 12]],
 };
 
+// Encuadre inicial en pantallas verticales: Europa y Africa (el mundo entero quedaria diminuto).
+const PORTRAIT_HOME = [[-22, -36], [58, 64]];
+
 export function createMap(container, { onClick, onHover } = {}) {
+  // El SVG mide lo mismo que su contenedor, asi el mapa aprovecha todo el espacio.
+  const W = Math.max(320, container.clientWidth || 1000);
+  const H = Math.max(240, container.clientHeight || 520);
+  const portrait = H > W;
   const land = feature(world, world.objects.countries).features.filter((f) => f.properties.name !== 'Antarctica');
-  const projection = geoNaturalEarth1().fitExtent([[8, 8], [W - 8, H - 8]], { type: 'FeatureCollection', features: land });
+  const projection = geoNaturalEarth1().fitExtent([[16, 16], [W - 16, H - 16]], { type: 'FeatureCollection', features: land });
   const path = geoPath(projection);
 
   const svg = select(container).append('svg').attr('viewBox', `0 0 ${W} ${H}`).attr('class', 'map');
   svg.append('rect').attr('class', 'ocean').attr('width', W).attr('height', H);
   const layer = svg.append('g');
   layer.append('path').attr('class', 'sphere').attr('d', path({ type: 'Sphere' }));
-  layer.append('path').attr('class', 'graticule').attr('d', path(geoGraticule10()));
+  svg.append('clipPath').attr('id', 'sphere-clip').append('path').attr('d', path({ type: 'Sphere' }));
+  layer.append('path').attr('class', 'graticule').attr('clip-path', 'url(#sphere-clip)').attr('d', path(geoGraticule10()));
   const shapes = layer.append('g');
   const dots = layer.append('g');
+  const ring = layer.append('circle').attr('class', 'target-ring').attr('r', RING_R).style('display', 'none');
 
   // id de pais -> { els: [elementos svg], features: [] }
   const byCode = new Map();
@@ -80,7 +88,8 @@ export function createMap(container, { onClick, onHover } = {}) {
     .on('zoom', (event) => {
       k = event.transform.k;
       layer.attr('transform', event.transform);
-      dots.selectAll('circle').attr('r', DOT_R / Math.sqrt(k));
+      dots.selectAll('circle').attr('r', DOT_R / k);
+      ring.attr('r', RING_R / k);
     });
   svg.call(zoomer).on('dblclick.zoom', null);
 
@@ -131,7 +140,7 @@ export function createMap(container, { onClick, onHover } = {}) {
     },
     zoomToCountry(id) {
       const b = boundsOf(id);
-      if (b) fit(b, { minSize: 140, maxScale: 14 });
+      if (b) fit(b, { minSize: portrait ? W * 0.32 : Math.min(W, H) * 0.45, maxScale: 10 });
     },
     zoomToContinent(continent) {
       if (!CONTINENT_BOX[continent]) return this.reset();
@@ -140,7 +149,17 @@ export function createMap(container, { onClick, onHover } = {}) {
     zoomBy(factor) {
       svg.transition().duration(250).call(zoomer.scaleBy, factor);
     },
+    // Anillo que senala el pais a adivinar (se ve aunque el pais sea un punto).
+    setTarget(id) {
+      const e = id && byCode.get(id);
+      if (!e) return ring.style('display', 'none');
+      const biggest = e.features.length ? e.features.reduce((a, b) => (path.area(b) > path.area(a) ? b : a)) : null;
+      if (!e.point && path.area(biggest) > 900) return ring.style('display', 'none');
+      const [x, y] = e.point ?? path.centroid(biggest);
+      ring.attr('cx', x).attr('cy', y).style('display', null);
+    },
     reset() {
+      if (portrait) return fit(projectBox(PORTRAIT_HOME));
       svg.transition().duration(650).call(zoomer.transform, zoomIdentity);
     },
   };
