@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://juanexpensive.github.io/paises-del-mundo/sitemap.xml

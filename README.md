@@ -20,3 +20,10 @@ npm run build   # version para publicar en dist/
 ```
 
 Mapa: [world-atlas](https://github.com/topojson/world-atlas) (Natural Earth 1:50m) dibujado con d3-geo.
+
+## Publicacion
+
+Cada push a `main` se publica automaticamente en GitHub Pages:
+https://juanexpensive.github.io/paises-del-mundo/
+
+La lista de paises que aparece en la pagina (para buscadores) se genera al compilar desde `src/countries.js` (ver `vite.config.js`).
