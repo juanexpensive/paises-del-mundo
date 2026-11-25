@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Pa&iacute;ses del mundo</title>
+    <meta name="description" content="Aprende y pon a prueba los nombres de los 197 pa&iacute;ses del mundo en espa&ntilde;ol." />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+  </head>
+  <body>
+    <header class="top">
+      <h1 class="brand"><span class="brand-dot"></span>Pa&iacute;ses del mundo</h1>
+      <nav class="tabs" role="tablist">
+        <button class="tab" role="tab" data-mode="reto">Reto</button>
+        <button class="tab" role="tab" data-mode="estudiar">Estudiar</button>
+        <button class="tab" role="tab" data-mode="practicar">Practicar</button>
+      </nav>
+    </header>
+
+    <main class="layout">
+      <section class="map-wrap">
+        <div id="map"></div>
+        <div class="map-tools">
+          <button data-zoom="in" aria-label="Acercar">+</button>
+          <button data-zoom="out" aria-label="Alejar">&minus;</button>
+          <button data-zoom="reset" aria-label="Ver todo">&#8634;</button>
+        </div>
+        <div id="tooltip" class="tooltip" hidden></div>
+      </section>
+
+      <aside class="panel">
+        <!-- RETO -->
+        <section class="mode" data-panel="reto" hidden>
+          <p class="lead">Escribe todos los pa&iacute;ses que recuerdes antes de que se acabe el tiempo.</p>
+          <div class="chips" data-chips="reto"></div>
+          <input id="reto-input" class="big-input" type="text" autocomplete="off" spellcheck="false" placeholder="Escribe un pa&iacute;s para empezar..." />
+          <div class="score-row">
+            <div><strong id="reto-count">0</strong><span id="reto-total">/197</span></div>
+            <div id="reto-timer" class="timer">15:00</div>
+          </div>
+          <div class="row">
+            <button id="reto-giveup" class="btn ghost">Rendirse</button>
+            <button id="reto-restart" class="btn ghost">Reiniciar</button>
+          </div>
+          <p id="reto-best" class="muted"></p>
+          <ul id="reto-bars" class="bars"></ul>
+          <div id="reto-result" class="result" hidden>
+            <h2 id="reto-result-title"></h2>
+            <button id="reto-practice" class="btn">Practicar los que me faltaron</button>
+            <div id="reto-missed"></div>
+          </div>
+        </section>
+
+        <!-- ESTUDIAR -->
+        <section class="mode" data-panel="estudiar" hidden>
+          <p class="lead">Explora el mapa: pasa el rat&oacute;n o toca un pa&iacute;s para ver su nombre.</p>
+          <div class="chips" data-chips="estudiar"></div>
+          <div id="study-card" class="card">
+            <div id="study-name" class="card-name">Elige un pa&iacute;s</div>
+            <div id="study-cont" class="muted">en el mapa o en la lista</div>
+          </div>
+          <input id="study-search" class="small-input" type="search" placeholder="Buscar en la lista..." />
+          <ul id="study-list" class="list"></ul>
+        </section>
+
+        <!-- PRACTICAR -->
+        <section class="mode" data-panel="practicar" hidden>
+          <p class="lead">&iquest;Qu&eacute; pa&iacute;s est&aacute; marcado? Los que falles volver&aacute;n a salir m&aacute;s a menudo.</p>
+          <div class="chips" data-chips="practicar"></div>
+          <div class="segmented">
+            <button data-pmode="escribir">Escribir</button>
+            <button data-pmode="opciones">4 opciones</button>
+          </div>
+          <div id="practice-empty" class="muted" hidden>No hay pa&iacute;ses en esta lista todav&iacute;a. Juega un reto para tener fallos que repasar.</div>
+          <div id="practice-box">
+            <input id="practice-input" class="big-input" type="text" autocomplete="off" spellcheck="false" placeholder="Nombre del pa&iacute;s..." />
+            <div id="practice-options" class="options"></div>
+            <div class="row">
+              <button id="practice-hint" class="btn ghost">Pista</button>
+              <button id="practice-skip" class="btn ghost">No lo s&eacute;</button>
+              <button id="practice-next" class="btn" hidden>Siguiente</button>
+            </div>
+            <p id="practice-feedback" class="feedback" aria-live="polite"></p>
+          </div>
+          <div class="stats">
+            <div><strong id="practice-streak">0</strong><span class="muted"> racha</span></div>
+            <div><strong id="practice-mastered">0</strong><span class="muted" id="practice-mastered-total"> dominados</span></div>
+          </div>
+          <div class="progress"><div id="practice-bar"></div></div>
+          <button id="practice-reset" class="link">Borrar mi progreso</button>
+        </section>
+      </aside>
+    </main>
+
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>
