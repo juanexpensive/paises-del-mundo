@@ -57,7 +57,11 @@ const map = createMap($('#map'), {
 document.querySelectorAll('[data-zoom]').forEach((b) =>
   b.addEventListener('click', () => {
     const z = b.dataset.zoom;
-    if (z === 'reset') map.reset();
+    if (z === 'reset') {
+      // Encuadra la region con la que estas jugando.
+      const region = current?.region ?? 'all';
+      CONTINENTS.some((c) => c.id === region) ? map.zoomToContinent(region) : map.reset();
+    }
     else map.zoomBy(z === 'in' ? 1.8 : 1 / 1.8);
   }),
 );
@@ -334,6 +338,8 @@ const practice = {
   done: false,
   streak: 0,
   nextTimer: null,
+  answered: new Map(), // id -> ok | hinted | fail en la ronda actual
+  roundOver: false,
 
   enter() {
     const regions = [...REGIONS, { id: 'fallos', label: '\u00daltimos fallos' }];
@@ -341,7 +347,7 @@ const practice = {
       this.region = r;
       this.start();
     });
-    hoverEnabled = (id) => this.done && id === this.target;
+    hoverEnabled = (id) => this.answered.has(id) || (this.done && id === this.target);
     onMapClick = () => {};
     this.renderMode();
     this.start();
@@ -354,6 +360,9 @@ const practice = {
   start() {
     this.pool = this.region === 'fallos' ? store.get('paises-ultimos-fallos', []) : idsIn(this.region);
     this.recent = [];
+    this.answered.clear();
+    this.roundOver = false;
+    ['p-ok', 'p-hint', 'p-miss'].forEach((c) => map.clearClass(c));
     dimOutside(this.region);
     const empty = this.pool.length === 0;
     $('#practice-empty').hidden = !empty;
@@ -371,8 +380,10 @@ const practice = {
     map.clearClass('target');
     map.setTarget(null);
     tooltip.hidden = true;
-    this.target = pickNext(this.pool, progress, this.recent);
-    this.recent = [...this.recent, this.target].slice(-Math.min(5, this.pool.length - 1));
+    if (this.roundOver) return this.start();
+    const remaining = this.pool.filter((id) => !this.answered.has(id));
+    if (!remaining.length) return this.finishRound();
+    this.target = pickNext(remaining, progress);
     this.hint = 0;
     this.failed = false;
     this.done = false;
@@ -388,6 +399,8 @@ const practice = {
     $('#practice-next').hidden = true;
     $('#practice-hint').hidden = false;
     $('#practice-skip').hidden = false;
+    $('#practice-next').textContent = 'Siguiente';
+    this.renderCount();
     this.renderOptions();
     if (this.mode === 'escribir') input.focus({ preventScroll: true });
   },
@@ -468,6 +481,7 @@ const practice = {
     this.done = true;
     const result = this.failed ? 'fail' : this.hint ? 'hinted' : 'ok';
     progress.record(this.target, result);
+    this.mark(result);
     this.streak = result === 'ok' ? this.streak + 1 : 0;
     $('#practice-input').value = nameOf(this.target);
     this.feedback(`\u00a1Correcto! Es ${nameOf(this.target)}.`, 'good');
@@ -478,8 +492,9 @@ const practice = {
     if (this.done) return;
     this.done = true;
     progress.record(this.target, 'fail');
+    this.mark('fail');
     this.streak = 0;
-    this.feedback(`Era ${nameOf(this.target)}. Saldr\u00e1 otra vez pronto.`, 'bad');
+    this.feedback(`Era ${nameOf(this.target)}.`, 'bad');
     document.querySelectorAll('.option').forEach((b) => b.textContent === nameOf(this.target) && b.classList.add('right'));
     $('#practice-input').disabled = true;
     $('#practice-next').hidden = false;
@@ -487,6 +502,35 @@ const practice = {
     $('#practice-skip').hidden = true;
     $('#practice-next').focus();
     this.renderStats();
+  },
+  // Pinta el pais segun como lo has respondido: verde, amarillo (con pista) o rojo.
+  mark(result) {
+    this.answered.set(this.target, result);
+    map.setClass(this.target, 'target', false);
+    map.setTarget(null);
+    map.setClass(this.target, { ok: 'p-ok', hinted: 'p-hint', fail: 'p-miss' }[result]);
+    this.renderCount();
+  },
+  finishRound() {
+    this.roundOver = true;
+    this.target = null;
+    const n = (r) => [...this.answered.values()].filter((v) => v === r).length;
+    this.feedback(`Ronda terminada: ${n('ok')} bien, ${n('hinted')} con pista y ${n('fail')} mal.`, n('fail') ? '' : 'good');
+    $('#practice-input').disabled = true;
+    $('#practice-options').innerHTML = '';
+    $('#practice-hint').hidden = true;
+    $('#practice-skip').hidden = true;
+    $('#practice-next').hidden = false;
+    $('#practice-next').textContent = 'Otra ronda';
+    $('#practice-next').focus();
+    this.region === 'all' || this.region === 'fallos' ? map.reset() : map.zoomToContinent(this.region);
+  },
+  renderCount() {
+    const n = (r) => [...this.answered.values()].filter((v) => v === r).length;
+    $('#practice-left').textContent = this.pool.length - this.answered.size;
+    $('#practice-ok').textContent = n('ok');
+    $('#practice-hinted').textContent = n('hinted');
+    $('#practice-miss').textContent = n('fail');
   },
   feedback(text, kind) {
     const el = $('#practice-feedback');

@@ -16,6 +16,8 @@
   --europa: #a58ad0;
   --oceania: #4fae9f;
   --ok: #2e7d3c;
+  --p-ok: #43a047;
+  --p-hint: #f2c230;
   --miss: #b0172a;
   --shadow: 0 6px 18px rgba(21, 35, 58, 0.2);
   --font: 'Archivo', system-ui, sans-serif;
@@ -190,6 +192,18 @@ button {
   animation: pulse 1.4s ease-in-out infinite;
 }
 
+.country.p-ok {
+  fill: var(--p-ok);
+}
+
+.country.p-hint {
+  fill: var(--p-hint);
+}
+
+.country.p-miss {
+  fill: var(--miss);
+}
+
 .target-ring {
   fill: none;
   stroke: var(--ink);
@@ -355,6 +369,30 @@ body[data-mode='practicar'] .reto-only {
 
 .hud-stats .miss strong {
   color: var(--miss);
+}
+
+.tally {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.tally i {
+  width: 10px;
+  height: 10px;
+  border: 1px solid rgba(21, 35, 58, 0.45);
+}
+
+.tally .t-ok {
+  background: var(--p-ok);
+}
+
+.tally .t-hint {
+  background: var(--p-hint);
+}
+
+.tally .t-miss {
+  background: var(--miss);
 }
 
 .timer {
@@ -540,8 +578,8 @@ body[data-mode='practicar'] .legend {
 }
 
 /* En Practicar, los puntos de microestados no compiten con el pais marcado */
-body[data-mode='practicar'] .dot:not(.target) {
-  opacity: 0.35;
+body[data-mode='practicar'] .dot:not(.target):not(.p-ok):not(.p-hint):not(.p-miss) {
+  opacity: 0.6;
 }
 
 .recent {
@@ -704,7 +742,8 @@ body[data-mode='practicar'] .dot:not(.target) {
 }
 
 .options {
-  flex: 1;
+  flex: 1 1 100%;
+  order: -1;
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 6px;
@@ -938,8 +977,11 @@ body[data-mode='practicar'] .dot:not(.target) {
     flex: 1;
   }
 
-  .options {
-    flex-basis: 100%;
+  #practice-box .hud-stats {
+    flex: 1 1 100%;
+    order: -1;
+    padding: 4px 0;
+    border-left: 0;
   }
 }
 

@@ -7,7 +7,7 @@ import world from 'world-atlas/countries-50m.json';
 import { BY_ID, MAP_ALIASES, MISSING_POINTS } from './countries.js';
 
 const SMALL_AREA = 30; // px2: por debajo se dibuja ademas un punto para poder verlo y pulsarlo
-const DOT_R = 2.8; // radio en pixeles de pantalla, igual con cualquier zoom
+const DOT_R = 3.2; // radio en pixeles de pantalla, igual con cualquier zoom
 const RING_R = 18;
 
 // Recuadros [lon, lat] para encuadrar cada continente (Rusia estropearia los limites automaticos de Europa).
@@ -16,7 +16,7 @@ const CONTINENT_BOX = {
   America: [[-168, -56], [-32, 72]],
   Asia: [[26, -11], [148, 56]],
   Europa: [[-25, 34], [45, 71]],
-  Oceania: [[112, -48], [180, 12]],
+  Oceania: [[112, -48], [190, 12]],
 };
 
 // Encuadre inicial en pantallas verticales: Europa y Africa (el mundo entero quedaria diminuto).
@@ -28,7 +28,8 @@ export function createMap(container, { onClick, onHover } = {}) {
   const H = Math.max(240, container.clientHeight || 520);
   const portrait = H > W;
   const land = feature(world, world.objects.countries).features.filter((f) => f.properties.name !== 'Antarctica');
-  const projection = geoNaturalEarth1().fitExtent([[16, 16], [W - 16, H - 16]], { type: 'FeatureCollection', features: land });
+  // Girado 11 grados: el corte del mapa cae en el estrecho de Bering y no parte las islas del Pacifico.
+  const projection = geoNaturalEarth1().rotate([-11, 0]).fitExtent([[16, 16], [W - 16, H - 16]], { type: 'FeatureCollection', features: land });
   const path = geoPath(projection);
 
   const svg = select(container).append('svg').attr('viewBox', `0 0 ${W} ${H}`).attr('class', 'map');
