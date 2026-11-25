@@ -16,7 +16,7 @@ test('hay 197 paises sin ids ni nombres repetidos', () => {
 test('ningun alias apunta a dos paises', () => {
   const seen = new Map();
   for (const c of COUNTRIES) {
-    for (const n of [c.name, ...c.alt]) {
+    for (const n of [c.name, ...c.alt, ...c.en]) {
       const k = norm(n);
       assert.ok(!seen.has(k) || seen.get(k) === c.id, `alias repetido: ${n}`);
       seen.set(k, c.id);
@@ -38,6 +38,21 @@ test('el buscador acepta tildes, mayusculas, articulos y alias', () => {
   assert.equal(m.find('holanda'), '528');
   assert.equal(m.find('guinea bisau'), '624');
   assert.equal(m.find('espa\u00f1'), null);
+});
+
+test('todos los paises tienen nombre en ingles', () => {
+  for (const c of COUNTRIES) assert.ok(c.en.length > 0, `sin ingles: ${c.name}`);
+});
+
+test('acepta nombres en ingles y abreviaturas', () => {
+  const m = createMatcher(COUNTRIES);
+  assert.equal(m.find('United Kingdom'), '826');
+  assert.equal(m.find('uk'), '826');
+  assert.equal(m.find('U.S.A.'), '840');
+  assert.equal(m.find('UAE'), '784');
+  assert.equal(m.find('germany'), '276');
+  assert.equal(m.find("Cote d'Ivoire"), '384');
+  assert.equal(m.find('DRC'), '180');
 });
 
 test('detecta nombres que pueden seguir (Niger -> Nigeria)', () => {

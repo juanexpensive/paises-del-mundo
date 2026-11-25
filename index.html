@@ -48,9 +48,11 @@
     <main class="stage">
       <div id="map" class="map-wrap"></div>
       <div class="map-tools">
-        <button data-zoom="in" aria-label="Acercar"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 3v10M3 8h10" /></svg></button>
-        <button data-zoom="out" aria-label="Alejar"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8h10" /></svg></button>
-        <button data-zoom="reset" aria-label="Ver todo el mapa"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2.5 6V2.5H6M10 2.5h3.5V6M13.5 10v3.5H10M6 13.5H2.5V10" /></svg></button>
+        <button data-zoom="in" aria-label="Acercar" title="Acercar"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 3v10M3 8h10" /></svg></button>
+        <button data-zoom="out" aria-label="Alejar" title="Alejar"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8h10" /></svg></button>
+        <button data-zoom="reset" aria-label="Ver todo el mapa" title="Ver todo el mapa"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2.5 6V2.5H6M10 2.5h3.5V6M13.5 10v3.5H10M6 13.5H2.5V10" /></svg></button>
+        <button id="reto-restart" class="reto-only tool-gap" aria-label="Empezar de nuevo" title="Empezar de nuevo"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M13 8a5 5 0 1 1-1.5-3.6M13 2.5v3h-3" /></svg></button>
+        <button id="reto-giveup" class="reto-only" aria-label="Rendirse" title="Rendirse"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3.5 14.5V2M3.5 2.5h8.5l-2 3.25 2 3.25H3.5" /></svg></button>
       </div>
       <div id="tooltip" class="tooltip" hidden></div>
       <ul id="legend" class="legend" aria-label="Progreso por continente"></ul>
@@ -66,10 +68,6 @@
           </div>
           <ol id="reto-recent" class="recent" aria-label="&Uacute;ltimos pa&iacute;ses"></ol>
           <p id="reto-best" class="muted"></p>
-          <div class="row">
-            <button id="reto-giveup" class="btn ghost">Rendirse</button>
-            <button id="reto-restart" class="btn ghost">Empezar de nuevo</button>
-          </div>
         </div>
         <p id="reto-feedback" class="feedback" aria-live="polite"></p>
         <div class="hud-bar">
@@ -79,7 +77,7 @@
             <span class="miss" title="Fallados"><strong id="reto-miss">0</strong> fallos</span>
             <strong id="reto-timer" class="timer" title="Tiempo restante">15:00</strong>
           </div>
-          <button class="hud-more" data-drawer="reto-drawer" aria-expanded="false" aria-controls="reto-drawer">M&aacute;s</button>
+          <button class="hud-more" data-drawer="reto-drawer" aria-expanded="false" aria-controls="reto-drawer" aria-label="Opciones" title="Opciones"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2 4h7M12.5 4H14M2 8h1.5M7 8h7M2 12h9M14 12h0" /><circle cx="10.75" cy="4" r="1.75" /><circle cx="5.25" cy="8" r="1.75" /><circle cx="12.5" cy="12" r="1.5" /></svg></button>
         </div>
       </section>
 
@@ -106,7 +104,7 @@
           <button id="practice-hint" class="btn ghost">Pista</button>
           <button id="practice-skip" class="btn ghost">No lo s&eacute;</button>
           <button id="practice-next" class="btn" hidden>Siguiente</button>
-          <button class="hud-more" data-drawer="practice-drawer" aria-expanded="false" aria-controls="practice-drawer">M&aacute;s</button>
+          <button class="hud-more" data-drawer="practice-drawer" aria-expanded="false" aria-controls="practice-drawer" aria-label="Opciones" title="Opciones"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2 4h7M12.5 4H14M2 8h1.5M7 8h7M2 12h9M14 12h0" /><circle cx="10.75" cy="4" r="1.75" /><circle cx="5.25" cy="8" r="1.75" /><circle cx="12.5" cy="12" r="1.5" /></svg></button>
         </div>
       </section>
     </main>
@@ -125,7 +123,7 @@
       <h3>Consejos</h3>
       <p>
         Empieza por un continente cada vez, por ejemplo Am&eacute;rica (35 pa&iacute;ses) u Ocean&iacute;a (14), y usa el modo Practicar a diario unos minutos.
-        No hace falta escribir tildes y se aceptan nombres alternativos como Holanda, EEUU, Birmania o Suazilandia.
+        No hace falta escribir tildes y se aceptan nombres alternativos como Holanda, EEUU, Birmania o Suazilandia, y tambi&eacute;n en ingl&eacute;s (Germany, UK, UAE...).
       </p>
       <details>
         <summary>Lista de los 197 pa&iacute;ses del mundo por continente</summary>

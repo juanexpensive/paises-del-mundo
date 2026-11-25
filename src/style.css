@@ -245,6 +245,19 @@ button {
   padding: 0;
 }
 
+.map-tools .tool-gap {
+  margin-top: 10px;
+}
+
+.map-tools button:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+body[data-mode='practicar'] .reto-only {
+  display: none;
+}
+
 .map-tools svg {
   width: 16px;
   height: 16px;
@@ -366,18 +379,13 @@ button {
   gap: 6px;
 }
 
-.hud-more::after {
-  content: '';
-  width: 7px;
-  height: 7px;
-  border-right: 1.7px solid currentColor;
-  border-bottom: 1.7px solid currentColor;
-  transform: translateY(2px) rotate(-135deg);
-  transition: transform 0.2s ease-out;
-}
-
-.hud-more[aria-expanded='true']::after {
-  transform: translateY(-2px) rotate(45deg);
+.hud-more svg {
+  width: 18px;
+  height: 18px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.6;
+  stroke-linecap: round;
 }
 
 .hud-more:hover,
@@ -836,6 +844,15 @@ body[data-mode='practicar'] .dot:not(.target) {
     display: none !important;
   }
 
+  .map-tools .tool-gap {
+    margin-top: 6px;
+  }
+
+  .map-tools {
+    top: 56px;
+    right: 12px;
+  }
+
   .legend {
     left: 12px;
     top: 8px;
@@ -907,12 +924,6 @@ body[data-mode='practicar'] .dot:not(.target) {
 
   .hud-more {
     padding: 10px 8px;
-    font-size: 0;
-  }
-
-  .hud-more::after {
-    width: 9px;
-    height: 9px;
   }
 
   .feedback {

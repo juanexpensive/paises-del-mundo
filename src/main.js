@@ -312,7 +312,10 @@ const reto = {
 
 $('#reto-input').addEventListener('input', (e) => reto.onInput(e.target.value));
 $('#reto-input').addEventListener('keydown', (e) => e.key === 'Enter' && reto.onEnter(e.target.value));
-$('#reto-giveup').addEventListener('click', () => reto.end());
+$('#reto-giveup').addEventListener('click', () => {
+  if (reto.ended) return;
+  if (!reto.running || confirm('\u00bfTe rindes? Ver\u00e1s en rojo los pa\u00edses que te faltan.')) reto.end();
+});
 $('#reto-restart').addEventListener('click', () => reto.reset());
 $('#reto-practice').addEventListener('click', () => {
   practice.region = 'fallos';

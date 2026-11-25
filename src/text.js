@@ -13,7 +13,7 @@ export function norm(text) {
 export function createMatcher(countries) {
   const entries = [];
   for (const c of countries) {
-    for (const name of [c.name, ...c.alt]) entries.push({ key: norm(name), id: c.id });
+    for (const name of [c.name, ...c.alt, ...c.en]) entries.push({ key: norm(name), id: c.id });
   }
   const exact = new Map(entries.map((e) => [e.key, e.id]));
 

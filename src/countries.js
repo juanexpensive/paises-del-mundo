@@ -2,6 +2,8 @@
 // id = codigo ISO 3166 numerico (el que usa world-atlas). "alt" = otras formas aceptadas.
 // Los textos visibles para el usuario llevan tildes; se escriben con escapes \u para mantener el codigo en ASCII.
 
+import { ENGLISH } from './english.js';
+
 const A = 'Africa';
 const M = 'America';
 const S = 'Asia';
@@ -225,7 +227,7 @@ const raw = [
   ['548', 'Vanuatu', O],
 ];
 
-export const COUNTRIES = raw.map(([id, name, continent, alt = []]) => ({ id, name, continent, alt }));
+export const COUNTRIES = raw.map(([id, name, continent, alt = []]) => ({ id, name, continent, alt, en: ENGLISH[id] ?? [] }));
 
 export const BY_ID = new Map(COUNTRIES.map((c) => [c.id, c]));
 
