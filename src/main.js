@@ -1,6 +1,6 @@
 import './style.css';
-import { COUNTRIES, CONTINENTS, BY_ID, continentLabel } from './countries.js';
-import { createMatcher, norm } from './text.js';
+import { COUNTRIES, CONTINENTS, BY_ID } from './countries.js';
+import { createMatcher } from './text.js';
 import { createProgress, pickNext } from './progress.js';
 import { createMap } from './map.js';
 
@@ -30,20 +30,27 @@ const store = {
 const REGIONS = [{ id: 'all', label: 'Todo el mundo' }, ...CONTINENTS];
 const idsIn = (region) => COUNTRIES.filter((c) => region === 'all' || c.continent === region).map((c) => c.id);
 
-// ---------- Mapa y tooltip ----------
+// ---------- Mapa y etiqueta ----------
 const tooltip = $('#tooltip');
 let hoverEnabled = () => false;
 let onMapClick = () => {};
+let pinnedUntil = 0;
+
+function showTip(id, event, kind = '') {
+  const box = $('.map-wrap').getBoundingClientRect();
+  tooltip.textContent = nameOf(id);
+  tooltip.className = `tooltip ${kind}`;
+  tooltip.style.left = `${event.clientX - box.left}px`;
+  tooltip.style.top = `${event.clientY - box.top}px`;
+  tooltip.hidden = false;
+}
 
 const map = createMap($('#map'), {
-  onClick: (id) => onMapClick(id),
+  onClick: (id, event) => onMapClick(id, event),
   onHover(id, event) {
+    if (Date.now() < pinnedUntil) return;
     if (!id || !hoverEnabled(id)) return (tooltip.hidden = true);
-    const box = $('.map-wrap').getBoundingClientRect();
-    tooltip.textContent = nameOf(id);
-    tooltip.style.left = `${event.clientX - box.left}px`;
-    tooltip.style.top = `${event.clientY - box.top}px`;
-    tooltip.hidden = false;
+    showTip(id, event);
   },
 });
 
@@ -80,10 +87,13 @@ const fmtTime = (s) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}
 
 // ---------- RETO ----------
 const TIME_LIMIT = { all: 15 * 60, Africa: 5 * 60, America: 4 * 60, Asia: 5 * 60, Europa: 5 * 60, Oceania: 2 * 60 };
+const HELP_TEXT = '\u00bfNo sabes cu\u00e1l es? Pulsa el pa\u00eds en el mapa: te digo su nombre y cuenta como fallo.';
 
 const reto = {
   region: 'all',
   found: new Set(),
+  revealed: new Set(),
+  recent: [],
   ids: [],
   running: false,
   ended: false,
@@ -96,8 +106,8 @@ const reto = {
       this.region = r;
       this.reset();
     });
-    hoverEnabled = () => this.ended;
-    onMapClick = () => {};
+    hoverEnabled = (id) => this.ended || this.found.has(id) || this.revealed.has(id);
+    onMapClick = (id, event) => id && this.reveal(id, event);
     this.reset();
   },
   leave() {
@@ -105,9 +115,11 @@ const reto = {
   },
   reset() {
     this.stop();
-    ['found', 'missed', 'flash'].forEach((c) => map.clearClass(c));
+    ['found', 'missed', 'flash', 'hl'].forEach((c) => map.clearClass(c));
     this.ids = idsIn(this.region);
     this.found.clear();
+    this.revealed.clear();
+    this.recent = [];
     this.running = false;
     this.ended = false;
     this.left = TIME_LIMIT[this.region];
@@ -118,10 +130,12 @@ const reto = {
     input.value = '';
     $('#reto-result').hidden = true;
     $('#reto-giveup').disabled = false;
+    this.feedback(HELP_TEXT, '');
     this.render();
-    input.focus();
+    input.focus({ preventScroll: true });
   },
   start() {
+    if (this.running || this.ended) return;
     this.running = true;
     this.timer = setInterval(() => {
       this.left--;
@@ -133,20 +147,24 @@ const reto = {
     clearInterval(this.timer);
     clearTimeout(this.pending);
   },
+  isPending(id) {
+    return this.ids.includes(id) && !this.found.has(id) && !this.revealed.has(id);
+  },
   onInput(value) {
     if (this.ended) return;
-    if (!this.running && value.trim()) this.start();
+    if (value.trim()) this.start();
     clearTimeout(this.pending);
     const id = matcher.find(value);
-    if (!id || !this.ids.includes(id) || this.found.has(id)) return;
+    if (!id || !this.ids.includes(id)) return;
+    if (this.revealed.has(id)) return this.feedback(`${nameOf(id)} ya lo pulsaste en el mapa: cuenta como fallo.`, 'bad');
+    if (!this.isPending(id)) return;
     // Si "Niger" puede seguir hasta "Nigeria", espera un momento (o Enter) antes de aceptarlo.
-    const pendingIds = (x) => this.ids.includes(x) && !this.found.has(x);
-    if (matcher.isPrefixOfOther(value, id, pendingIds)) this.pending = setTimeout(() => this.accept(id), 900);
+    if (matcher.isPrefixOfOther(value, id, (x) => this.isPending(x))) this.pending = setTimeout(() => this.accept(id), 900);
     else this.accept(id);
   },
   onEnter(value) {
     const id = matcher.find(value);
-    if (id && this.ids.includes(id) && !this.found.has(id)) this.accept(id);
+    if (id && this.isPending(id)) this.accept(id);
   },
   accept(id) {
     clearTimeout(this.pending);
@@ -155,8 +173,35 @@ const reto = {
     map.setClass(id, 'flash');
     setTimeout(() => map.setClass(id, 'flash', false), 700);
     $('#reto-input').value = '';
+    this.pushRecent(id, 'ok');
+    this.feedback('', '');
     this.render();
-    if (this.found.size === this.ids.length) this.end();
+    if (this.found.size + this.revealed.size === this.ids.length) this.end();
+  },
+  // Pulsar un pais del mapa: dice su nombre y lo da por fallado.
+  reveal(id, event) {
+    if (!this.ids.includes(id)) return;
+    showTip(id, event, this.found.has(id) ? 'ok' : 'bad');
+    pinnedUntil = Date.now() + 2200;
+    clearTimeout(this.tipTimer);
+    this.tipTimer = setTimeout(() => (tooltip.hidden = true), 2200);
+    if (this.ended || !this.isPending(id)) return;
+    this.start();
+    this.revealed.add(id);
+    map.setClass(id, 'missed');
+    this.pushRecent(id, 'bad');
+    this.feedback(`Es ${nameOf(id)}. Cuenta como fallo: \u00a1a la pr\u00f3xima lo sabr\u00e1s!`, 'bad');
+    this.render();
+    $('#reto-input').focus({ preventScroll: true });
+    if (this.found.size + this.revealed.size === this.ids.length) this.end();
+  },
+  pushRecent(id, kind) {
+    this.recent = [{ id, kind }, ...this.recent].slice(0, 6);
+  },
+  feedback(text, kind) {
+    const el = $('#reto-feedback');
+    el.textContent = text;
+    el.className = `feedback ${kind}`;
   },
   end() {
     this.stop();
@@ -178,10 +223,9 @@ const reto = {
 
     const total = this.ids.length;
     $('#reto-result-title').textContent =
-      missed.length === 0
-        ? `\u00a1Perfecto! Los ${total} en ${fmtTime(used)}`
-        : `Has nombrado ${this.found.size} de ${total}`;
+      missed.length === 0 ? `\u00a1Perfecto! Los ${total} en ${fmtTime(used)}` : `Has acertado ${this.found.size} de ${total}`;
     $('#reto-practice').hidden = missed.length === 0;
+    this.feedback(missed.length ? 'Pasa el rat\u00f3n por el mapa para ver los nombres que te faltaron.' : '', '');
     const box = $('#reto-missed');
     box.innerHTML = '';
     for (const c of CONTINENTS) {
@@ -193,13 +237,15 @@ const reto = {
       ul.className = 'missed-list';
       for (const id of list) {
         const li = document.createElement('li');
-        li.innerHTML = `<button class="missed-item"></button>`;
-        li.firstChild.textContent = nameOf(id);
-        li.firstChild.addEventListener('click', () => {
+        const b = document.createElement('button');
+        b.className = 'missed-item';
+        b.textContent = nameOf(id);
+        b.addEventListener('click', () => {
           map.clearClass('hl');
           map.setClass(id, 'hl');
           map.zoomToCountry(id);
         });
+        li.append(b);
         ul.append(li);
       }
       box.append(h, ul);
@@ -210,10 +256,20 @@ const reto = {
   render() {
     $('#reto-count').textContent = this.found.size;
     $('#reto-total').textContent = `/${this.ids.length}`;
+    $('#reto-miss').textContent = this.revealed.size;
     $('#reto-timer').textContent = fmtTime(this.left);
     $('#reto-timer').classList.toggle('low', this.running && this.left <= 30);
     const best = store.get('paises-records', {})[this.region];
     $('#reto-best').textContent = best ? `Tu r\u00e9cord: ${best.found}/${this.ids.length} en ${fmtTime(best.time)}` : '';
+
+    const recent = $('#reto-recent');
+    recent.innerHTML = '';
+    for (const r of this.recent) {
+      const li = document.createElement('li');
+      li.className = r.kind;
+      li.textContent = nameOf(r.id);
+      recent.append(li);
+    }
 
     const bars = $('#reto-bars');
     bars.innerHTML = '';
@@ -237,66 +293,6 @@ $('#reto-practice').addEventListener('click', () => {
   practice.region = 'fallos';
   setMode('practicar');
 });
-
-// ---------- ESTUDIAR ----------
-const study = {
-  region: 'all',
-  selected: null,
-
-  enter() {
-    chips('estudiar', REGIONS, this.region, (r) => {
-      this.region = r;
-      this.apply();
-    });
-    hoverEnabled = () => true;
-    onMapClick = (id) => id && this.select(id, false);
-    this.apply();
-    if (this.selected) map.setClass(this.selected, 'sel');
-  },
-  leave() {
-    map.clearClass('sel');
-    map.clearClass('hl');
-  },
-  apply() {
-    dimOutside(this.region);
-    this.region === 'all' ? map.reset() : map.zoomToContinent(this.region);
-    this.renderList();
-  },
-  renderList() {
-    const q = norm($('#study-search').value);
-    const ul = $('#study-list');
-    ul.innerHTML = '';
-    for (const id of idsIn(this.region).sort(byName)) {
-      const c = BY_ID.get(id);
-      if (q && ![c.name, ...c.alt].some((n) => norm(n).includes(q))) continue;
-      const li = document.createElement('li');
-      const b = document.createElement('button');
-      b.textContent = c.name;
-      b.dataset.id = id;
-      b.classList.toggle('on', id === this.selected);
-      b.addEventListener('mouseenter', () => map.setClass(id, 'hl'));
-      b.addEventListener('mouseleave', () => map.setClass(id, 'hl', false));
-      b.addEventListener('click', () => this.select(id, true));
-      li.append(b);
-      ul.append(li);
-    }
-  },
-  select(id, zoom) {
-    map.clearClass('sel');
-    this.selected = id;
-    map.setClass(id, 'sel');
-    if (zoom) map.zoomToCountry(id);
-    const c = BY_ID.get(id);
-    $('#study-name').textContent = c.name;
-    $('#study-cont').textContent = continentLabel(c.continent) + (c.alt.length ? ` \u00b7 tambi\u00e9n: ${c.alt.join(', ')}` : '');
-    $('#study-list')
-      .querySelectorAll('button')
-      .forEach((b) => b.classList.toggle('on', b.dataset.id === id));
-    $(`#study-list button[data-id="${id}"]`)?.scrollIntoView({ block: 'nearest' });
-  },
-};
-
-$('#study-search').addEventListener('input', () => study.renderList());
 
 // ---------- PRACTICAR ----------
 const practice = {
@@ -354,14 +350,14 @@ const practice = {
     const input = $('#practice-input');
     input.value = '';
     input.disabled = false;
-    input.placeholder = 'Nombre del pa\u00eds...';
+    input.placeholder = 'Nombre del pa\u00eds';
     $('#practice-feedback').textContent = '';
     $('#practice-feedback').className = 'feedback';
     $('#practice-next').hidden = true;
     $('#practice-hint').hidden = false;
     $('#practice-skip').hidden = false;
     this.renderOptions();
-    if (this.mode === 'escribir') input.focus();
+    if (this.mode === 'escribir') input.focus({ preventScroll: true });
   },
   renderMode() {
     document.querySelectorAll('[data-pmode]').forEach((b) => b.classList.toggle('on', b.dataset.pmode === this.mode));
@@ -392,7 +388,7 @@ const practice = {
           b.classList.add('wrong');
           b.disabled = true;
           this.failed = true;
-          this.feedback(`No, ese es otro pa\u00eds.`, 'bad');
+          this.feedback('No, ese es otro pa\u00eds.', 'bad');
         }
       });
       box.append(b);
@@ -416,6 +412,13 @@ const practice = {
   showHint() {
     if (this.done) return;
     const name = nameOf(this.target);
+    if (this.mode === 'opciones') {
+      // En modo opciones la pista elimina una opcion incorrecta.
+      this.hint++;
+      const wrong = [...document.querySelectorAll('.option:not(:disabled)')].filter((b) => b.textContent !== name);
+      if (wrong.length) wrong[0].disabled = true;
+      return this.feedback('Pista: he quitado una opci\u00f3n incorrecta.', '');
+    }
     this.hint = Math.min(this.hint + 1, name.length);
     const shown = name.slice(0, this.hint);
     const rest = name
@@ -427,13 +430,7 @@ const practice = {
     input.value = '';
     input.placeholder = `${shown} ${rest}`;
     this.feedback(`Pista: empieza por \u00ab${shown}\u00bb (${name.replace(/[\s-]/g, '').length} letras)`, '');
-    if (this.mode === 'opciones') {
-      // En modo opciones la pista elimina una opcion incorrecta.
-      const wrong = [...document.querySelectorAll('.option:not(:disabled)')].filter((b) => b.textContent !== name);
-      if (wrong.length) wrong[0].disabled = true;
-      this.feedback('Pista: he quitado una opci\u00f3n incorrecta.', '');
-    }
-    input.focus();
+    input.focus({ preventScroll: true });
   },
   correct() {
     this.done = true;
@@ -494,19 +491,20 @@ document.querySelectorAll('[data-pmode]').forEach((b) =>
 );
 
 // ---------- Cambio de modo ----------
-const modes = { reto, estudiar: study, practicar: practice };
+const modes = { reto, practicar: practice };
 let current = null;
 
 function setMode(name) {
   if (!modes[name]) name = 'reto';
   current?.leave();
-  ['dim', 'hl', 'sel', 'target', 'found', 'missed'].forEach((c) => map.clearClass(c));
+  ['dim', 'hl', 'target', 'found', 'missed'].forEach((c) => map.clearClass(c));
   tooltip.hidden = true;
+  document.body.dataset.mode = name;
   document.querySelectorAll('.tab').forEach((t) => t.classList.toggle('on', t.dataset.mode === name));
   document.querySelectorAll('[data-panel]').forEach((p) => (p.hidden = p.dataset.panel !== name));
   current = modes[name];
   current.enter();
-  if (location.hash !== `#${name}`) history.replaceState(null, '', `#${name}`);
+  if (location.hash !== `#${name}`) history.replaceState(null, '', `${location.search}#${name}`);
 }
 
 document.querySelectorAll('.tab').forEach((t) => t.addEventListener('click', () => setMode(t.dataset.mode)));

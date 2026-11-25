@@ -1,4 +1,4 @@
-import { geoNaturalEarth1, geoPath, geoCentroid } from 'd3-geo';
+import { geoNaturalEarth1, geoPath, geoCentroid, geoGraticule10 } from 'd3-geo';
 import { feature } from 'topojson-client';
 import { select } from 'd3-selection';
 import { zoom, zoomIdentity } from 'd3-zoom';
@@ -28,6 +28,8 @@ export function createMap(container, { onClick, onHover } = {}) {
   const svg = select(container).append('svg').attr('viewBox', `0 0 ${W} ${H}`).attr('class', 'map');
   svg.append('rect').attr('class', 'ocean').attr('width', W).attr('height', H);
   const layer = svg.append('g');
+  layer.append('path').attr('class', 'sphere').attr('d', path({ type: 'Sphere' }));
+  layer.append('path').attr('class', 'graticule').attr('d', path(geoGraticule10()));
   const shapes = layer.append('g');
   const dots = layer.append('g');
 
@@ -43,7 +45,7 @@ export function createMap(container, { onClick, onHover } = {}) {
     const isCountry = BY_ID.has(id);
     const el = shapes.append('path').attr('d', path(f)).attr('class', isCountry ? 'country' : 'land');
     if (isCountry) {
-      el.attr('data-id', id);
+      el.attr('data-id', id).attr('data-cont', BY_ID.get(id).continent);
       entry(id).els.push(el.node());
       entry(id).features.push(f);
     }
@@ -59,14 +61,14 @@ export function createMap(container, { onClick, onHover } = {}) {
   for (const [id, lonLat] of Object.entries(MISSING_POINTS)) addDot(id, projection(lonLat));
 
   function addDot(id, [x, y]) {
-    const el = dots.append('circle').attr('cx', x).attr('cy', y).attr('r', DOT_R).attr('class', 'country dot').attr('data-id', id);
+    const el = dots.append('circle').attr('cx', x).attr('cy', y).attr('r', DOT_R).attr('class', 'country dot').attr('data-id', id).attr('data-cont', BY_ID.get(id).continent);
     entry(id).els.push(el.node());
     entry(id).point = [x, y];
   }
 
   // Interaccion
   const idOf = (event) => event.target.closest?.('[data-id]')?.getAttribute('data-id') ?? null;
-  svg.on('click', (event) => onClick?.(idOf(event)));
+  svg.on('click', (event) => onClick?.(idOf(event), event));
   svg.on('mouseover', (event) => onHover?.(idOf(event), event));
   svg.on('mousemove', (event) => idOf(event) && onHover?.(idOf(event), event));
   svg.on('mouseout', (event) => !event.relatedTarget?.closest?.('[data-id]') && onHover?.(null, event));

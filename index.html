@@ -35,10 +35,9 @@
   </head>
   <body>
     <header class="top">
-      <h1 class="brand"><span class="brand-dot"></span>Pa&iacute;ses del mundo</h1>
+      <h1 class="brand"><span class="brand-mark" aria-hidden="true"></span><span class="brand-text">Pa&iacute;ses del mundo</span></h1>
       <nav class="tabs" role="tablist">
         <button class="tab" role="tab" data-mode="reto">Reto</button>
-        <button class="tab" role="tab" data-mode="estudiar">Estudiar</button>
         <button class="tab" role="tab" data-mode="practicar">Practicar</button>
       </nav>
     </header>
@@ -47,9 +46,9 @@
       <section class="map-wrap">
         <div id="map"></div>
         <div class="map-tools">
-          <button data-zoom="in" aria-label="Acercar">+</button>
-          <button data-zoom="out" aria-label="Alejar">&minus;</button>
-          <button data-zoom="reset" aria-label="Ver todo">&#8634;</button>
+          <button data-zoom="in" aria-label="Acercar"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 3v10M3 8h10" /></svg></button>
+          <button data-zoom="out" aria-label="Alejar"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8h10" /></svg></button>
+          <button data-zoom="reset" aria-label="Ver todo el mapa"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2.5 6V2.5H6M10 2.5h3.5V6M13.5 10v3.5H10M6 13.5H2.5V10" /></svg></button>
         </div>
         <div id="tooltip" class="tooltip" hidden></div>
       </section>
@@ -57,36 +56,35 @@
       <aside class="panel">
         <!-- RETO -->
         <section class="mode" data-panel="reto" hidden>
-          <p class="lead">Escribe todos los pa&iacute;ses que recuerdes antes de que se acabe el tiempo.</p>
           <div class="chips" data-chips="reto"></div>
-          <input id="reto-input" class="big-input" type="text" autocomplete="off" spellcheck="false" placeholder="Escribe un pa&iacute;s para empezar..." />
-          <div class="score-row">
-            <div><strong id="reto-count">0</strong><span id="reto-total">/197</span></div>
-            <div id="reto-timer" class="timer">15:00</div>
+          <div class="board">
+            <div class="board-cell">
+              <span class="board-label">Acertados</span>
+              <span class="board-value"><strong id="reto-count">0</strong><span id="reto-total">/197</span></span>
+            </div>
+            <div class="board-cell">
+              <span class="board-label">Fallados</span>
+              <span class="board-value"><strong id="reto-miss">0</strong></span>
+            </div>
+            <div class="board-cell">
+              <span class="board-label">Tiempo</span>
+              <span class="board-value"><strong id="reto-timer" class="timer">15:00</strong></span>
+            </div>
           </div>
+          <input id="reto-input" class="big-input" type="text" autocomplete="off" spellcheck="false" aria-label="Nombre de un pa&iacute;s" placeholder="Escribe un pa&iacute;s para empezar" />
+          <p id="reto-feedback" class="feedback" aria-live="polite">&iquest;No sabes cu&aacute;l es? Pulsa el pa&iacute;s en el mapa: te digo su nombre y cuenta como fallo.</p>
+          <ol id="reto-recent" class="recent" aria-label="&Uacute;ltimos pa&iacute;ses"></ol>
+          <ul id="reto-bars" class="bars"></ul>
           <div class="row">
             <button id="reto-giveup" class="btn ghost">Rendirse</button>
-            <button id="reto-restart" class="btn ghost">Reiniciar</button>
+            <button id="reto-restart" class="btn ghost">Empezar de nuevo</button>
           </div>
           <p id="reto-best" class="muted"></p>
-          <ul id="reto-bars" class="bars"></ul>
           <div id="reto-result" class="result" hidden>
             <h2 id="reto-result-title"></h2>
             <button id="reto-practice" class="btn">Practicar los que me faltaron</button>
             <div id="reto-missed"></div>
           </div>
-        </section>
-
-        <!-- ESTUDIAR -->
-        <section class="mode" data-panel="estudiar" hidden>
-          <p class="lead">Explora el mapa: pasa el rat&oacute;n o toca un pa&iacute;s para ver su nombre.</p>
-          <div class="chips" data-chips="estudiar"></div>
-          <div id="study-card" class="card">
-            <div id="study-name" class="card-name">Elige un pa&iacute;s</div>
-            <div id="study-cont" class="muted">en el mapa o en la lista</div>
-          </div>
-          <input id="study-search" class="small-input" type="search" placeholder="Buscar en la lista..." />
-          <ul id="study-list" class="list"></ul>
         </section>
 
         <!-- PRACTICAR -->
@@ -124,10 +122,9 @@
         Este quiz gratuito te ayuda a memorizar los nombres de los <strong>197 pa&iacute;ses del mundo en espa&ntilde;ol</strong>:
         los 193 estados miembros de la ONU m&aacute;s la Ciudad del Vaticano, Palestina, Kosovo y Taiw&aacute;n. No necesitas registrarte y tu progreso se guarda en tu navegador.
       </p>
-      <h3>Tres formas de jugar</h3>
+      <h3>Dos formas de jugar</h3>
       <ul>
-        <li><strong>Reto:</strong> escribe todos los pa&iacute;ses que recuerdes antes de que se acabe el tiempo. Cada acierto se colorea en el mapa. Puedes jugar con el mundo entero o solo con un continente.</li>
-        <li><strong>Estudiar:</strong> explora el mapa y descubre el nombre de cada pa&iacute;s al pasar el rat&oacute;n o tocarlo.</li>
+        <li><strong>Reto:</strong> escribe todos los pa&iacute;ses que recuerdes antes de que se acabe el tiempo. Cada acierto se colorea en el mapa. Puedes jugar con el mundo entero o solo con un continente. Si no sabes cu&aacute;l es un pa&iacute;s, p&uacute;lsalo en el mapa: ver&aacute;s su nombre y contar&aacute; como fallo, para que la pr&oacute;xima vez lo recuerdes.</li>
         <li><strong>Practicar:</strong> el mapa marca un pa&iacute;s y tienes que adivinar cu&aacute;l es. Los que fallas vuelven a salir m&aacute;s a menudo (repetici&oacute;n espaciada) hasta que los dominas.</li>
       </ul>
       <h3>Consejos</h3>
