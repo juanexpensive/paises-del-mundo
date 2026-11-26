@@ -38,6 +38,7 @@ const tooltip = $('#tooltip');
 let hoverEnabled = () => false;
 let onMapClick = () => {};
 let pinnedUntil = 0;
+let tipTimer = null;
 
 function showTip(id, event, kind = '') {
   const box = $('.stage').getBoundingClientRect();
@@ -46,6 +47,14 @@ function showTip(id, event, kind = '') {
   tooltip.style.left = `${event.clientX - box.left}px`;
   tooltip.style.top = `${event.clientY - box.top}px`;
   tooltip.hidden = false;
+}
+
+// Muestra el nombre del pais pulsado un rato, aunque el raton se mueva.
+function pinTip(id, event, kind) {
+  showTip(id, event, kind);
+  pinnedUntil = Date.now() + 2200;
+  clearTimeout(tipTimer);
+  tipTimer = setTimeout(() => (tooltip.hidden = true), 2200);
 }
 
 const map = createMap($('#map'), {
@@ -75,20 +84,34 @@ function dimOutside(region) {
   for (const c of COUNTRIES) if (!conts.includes(c.continent)) map.setClass(c.id, 'dim');
 }
 
-function chips(name, options, current, onChange) {
+// Chips de region: los continentes se pueden combinar; las demas opciones van solas.
+function regionChips(name, region, onChange, extra = []) {
   const box = document.querySelector(`[data-chips="${name}"]`);
   box.innerHTML = '';
-  for (const o of options) {
+  const selected = continentsOf(region) ?? [];
+  for (const o of [...REGIONS, ...extra]) {
+    const isCont = CONTINENTS.some((c) => c.id === o.id);
+    const on = isCont ? selected.includes(o.id) : region === o.id;
     const b = document.createElement('button');
-    b.className = 'chip' + (o.id === current ? ' on' : '');
+    b.className = 'chip' + (on ? ' on' : '');
     b.textContent = o.label;
+    b.setAttribute('aria-pressed', String(on));
     b.addEventListener('click', () => {
-      box.querySelectorAll('.chip').forEach((c) => c.classList.toggle('on', c === b));
-      onChange(o.id);
+      let next = o.id;
+      if (isCont) {
+        const set = on ? selected.filter((c) => c !== o.id) : [...selected, o.id];
+        // Ninguno o todos los continentes equivale a todo el mundo.
+        const ordered = CONTINENTS.map((c) => c.id).filter((c) => set.includes(c));
+        next = set.length && set.length < CONTINENTS.length ? ordered.join(',') : 'all';
+      }
+      onChange(next);
     });
     box.append(b);
   }
 }
+
+// Cuantas respuestas de una ronda tienen un resultado (ok, hinted o fail).
+const countOf = (answered, result) => [...answered.values()].filter((v) => v === result).length;
 
 const fmtTime = (s) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
 
@@ -120,10 +143,7 @@ const reto = {
   pending: null,
 
   enter() {
-    chips('reto', REGIONS, this.region, (r) => {
-      this.region = r;
-      this.reset();
-    });
+    this.renderChips();
     this.renderTimed();
     hoverEnabled = (id) => this.ended || this.found.has(id) || this.revealed.has(id);
     onMapClick = (id, event) => id && this.reveal(id, event);
@@ -131,6 +151,13 @@ const reto = {
   },
   leave() {
     this.stop();
+  },
+  renderChips() {
+    regionChips('reto', this.region, (r) => {
+      this.region = r;
+      this.renderChips();
+      this.reset();
+    });
   },
   reset() {
     this.stop();
@@ -165,7 +192,9 @@ const reto = {
   },
   // Segundos que quedan en contrarreloj.
   left() {
-    return TIME_LIMIT[this.region] - this.elapsed;
+    // Con varios continentes se suman sus tiempos, sin pasar del mundo entero.
+    const sum = continentsOf(this.region)?.reduce((total, c) => total + TIME_LIMIT[c], 0) ?? TIME_LIMIT.all;
+    return Math.min(TIME_LIMIT.all, sum) - this.elapsed;
   },
   // Los records sin limite de tiempo se guardan aparte.
   recordKey() {
@@ -218,10 +247,7 @@ const reto = {
   // Pulsar un pais del mapa: dice su nombre y lo da por fallado.
   reveal(id, event) {
     if (!this.ids.includes(id)) return;
-    showTip(id, event, this.found.has(id) ? 'ok' : 'bad');
-    pinnedUntil = Date.now() + 2200;
-    clearTimeout(this.tipTimer);
-    this.tipTimer = setTimeout(() => (tooltip.hidden = true), 2200);
+    pinTip(id, event, this.found.has(id) ? 'ok' : 'bad');
     if (this.ended || !this.isPending(id)) return;
     this.start();
     this.revealed.add(id);
@@ -321,7 +347,7 @@ const reto = {
     // Leyenda del mapa: color de cada continente y cuantos llevas.
     const legend = $('#legend');
     legend.innerHTML = '';
-    const conts = this.region === 'all' ? CONTINENTS : CONTINENTS.filter((c) => c.id === this.region);
+    const conts = CONTINENTS.filter((c) => continentsOf(this.region)?.includes(c.id) ?? true);
     for (const c of conts) {
       const ids = idsIn(c.id);
       const n = ids.filter((id) => this.found.has(id)).length;
@@ -374,28 +400,8 @@ const practice = {
     clearTimeout(this.nextTimer);
     map.clearClass('target');
   },
-  // Chips de region: los continentes se pueden combinar; Todo el mundo y Ultimos fallos van solos.
   renderChips() {
-    const box = document.querySelector('[data-chips="practicar"]');
-    box.innerHTML = '';
-    const selected = continentsOf(this.region) ?? [];
-    for (const o of [...REGIONS, { id: 'fallos', label: '\u00daltimos fallos' }]) {
-      const isCont = CONTINENTS.some((c) => c.id === o.id);
-      const on = isCont ? selected.includes(o.id) : this.region === o.id;
-      const b = document.createElement('button');
-      b.className = 'chip' + (on ? ' on' : '');
-      b.textContent = o.label;
-      b.setAttribute('aria-pressed', String(on));
-      b.addEventListener('click', () => {
-        let next = o.id;
-        if (isCont) {
-          const set = on ? selected.filter((c) => c !== o.id) : [...selected, o.id];
-          next = set.length ? CONTINENTS.map((c) => c.id).filter((c) => set.includes(c)).join(',') : 'all';
-        }
-        this.setRegion(next);
-      });
-      box.append(b);
-    }
+    regionChips('practicar', this.region, (r) => this.setRegion(r), [{ id: 'fallos', label: '\u00daltimos fallos' }]);
   },
   setRegion(region) {
     this.region = region;
@@ -556,7 +562,7 @@ const practice = {
   finishRound() {
     this.roundOver = true;
     this.target = null;
-    const n = (r) => [...this.answered.values()].filter((v) => v === r).length;
+    const n = (r) => countOf(this.answered, r);
     this.feedback(`Ronda terminada: ${n('ok')} bien, ${n('hinted')} con pista y ${n('fail')} mal.`, n('fail') ? '' : 'good');
     $('#practice-input').disabled = true;
     $('#practice-options').innerHTML = '';
@@ -568,7 +574,7 @@ const practice = {
     zoomRegion(this.region);
   },
   renderCount() {
-    const n = (r) => [...this.answered.values()].filter((v) => v === r).length;
+    const n = (r) => countOf(this.answered, r);
     $('#practice-left').textContent = this.pool.length - this.answered.size;
     $('#practice-ok').textContent = n('ok');
     $('#practice-hinted').textContent = n('hinted');
@@ -610,14 +616,135 @@ document.querySelectorAll('[data-pmode]').forEach((b) =>
   }),
 );
 
+// ---------- UBICAR ----------
+const MAX_MISSES = 3;
+
+const ubicar = {
+  region: store.get('paises-region-ubicar', 'all'),
+  pool: [],
+  target: null,
+  misses: 0,
+  done: false,
+  roundOver: false,
+  nextTimer: null,
+  answered: new Map(), // id -> ok (a la primera) | hinted (tras fallar) | fail (no encontrado)
+
+  enter() {
+    hoverEnabled = (id) => this.answered.has(id);
+    onMapClick = (id, event) => id && this.guess(id, event);
+    this.start();
+  },
+  leave() {
+    clearTimeout(this.nextTimer);
+  },
+  start() {
+    regionChips('ubicar', this.region, (r) => {
+      this.region = r;
+      store.set('paises-region-ubicar', r);
+      this.start();
+    });
+    clearTimeout(this.nextTimer);
+    this.pool = idsIn(this.region);
+    this.answered.clear();
+    this.target = null;
+    this.roundOver = false;
+    ['p-ok', 'p-hint', 'p-miss', 'target'].forEach((c) => map.clearClass(c));
+    dimOutside(this.region);
+    zoomRegion(this.region);
+    this.next();
+  },
+  next() {
+    clearTimeout(this.nextTimer);
+    if (this.roundOver) return this.start();
+    map.clearClass('target');
+    // Tras ensenar donde estaba el anterior, vuelve a encuadrar la region.
+    if (this.answered.get(this.target) === 'fail') zoomRegion(this.region);
+    const remaining = this.pool.filter((id) => !this.answered.has(id));
+    if (!remaining.length) return this.finishRound();
+    this.target = remaining[Math.floor(Math.random() * remaining.length)];
+    this.misses = 0;
+    this.done = false;
+    const name = document.createElement('strong');
+    name.textContent = nameOf(this.target);
+    $('#ubicar-prompt').replaceChildren('\u00bfD\u00f3nde est\u00e1 ', name, '?');
+    this.feedback('', '');
+    $('#ubicar-skip').hidden = false;
+    $('#ubicar-next').hidden = true;
+    this.renderCount();
+  },
+  guess(id, event) {
+    if (this.done || !this.target) return;
+    if (id === this.target) return this.found();
+    this.misses++;
+    pinTip(id, event, 'bad');
+    const left = MAX_MISSES - this.misses;
+    if (!left) return this.reveal(`No, eso es ${nameOf(id)}. `);
+    this.feedback(`No, eso es ${nameOf(id)}. ${left === 1 ? 'Te queda 1 intento' : `Te quedan ${left} intentos`}.`, 'bad');
+  },
+  found() {
+    this.done = true;
+    const id = this.target;
+    const result = this.misses ? 'hinted' : 'ok';
+    this.mark(result);
+    map.setClass(id, 'flash');
+    setTimeout(() => map.setClass(id, 'flash', false), 700);
+    this.feedback(result === 'ok' ? `\u00a1Correcto! Eso es ${nameOf(id)}.` : `\u00a1Bien! Ese es ${nameOf(id)}.`, 'good');
+    this.nextTimer = setTimeout(() => this.next(), 900);
+  },
+  // Sin intentos o con "No lo se": ensena donde estaba.
+  reveal(prefix = '') {
+    if (this.done || !this.target) return;
+    this.done = true;
+    this.mark('fail');
+    map.setClass(this.target, 'target');
+    map.zoomToCountry(this.target);
+    this.feedback(`${prefix}${nameOf(this.target)} est\u00e1 aqu\u00ed.`, 'bad');
+    $('#ubicar-skip').hidden = true;
+    $('#ubicar-next').textContent = 'Siguiente';
+    $('#ubicar-next').hidden = false;
+    $('#ubicar-next').focus();
+  },
+  mark(result) {
+    this.answered.set(this.target, result);
+    map.setClass(this.target, { ok: 'p-ok', hinted: 'p-hint', fail: 'p-miss' }[result]);
+    this.renderCount();
+  },
+  finishRound() {
+    this.roundOver = true;
+    this.target = null;
+    const n = (r) => countOf(this.answered, r);
+    $('#ubicar-prompt').textContent = 'Ronda terminada';
+    this.feedback(`${n('ok')} a la primera, ${n('hinted')} tras fallar y ${n('fail')} sin encontrar.`, n('fail') ? '' : 'good');
+    $('#ubicar-skip').hidden = true;
+    $('#ubicar-next').textContent = 'Otra ronda';
+    $('#ubicar-next').hidden = false;
+    $('#ubicar-next').focus();
+  },
+  renderCount() {
+    const n = (r) => countOf(this.answered, r);
+    $('#ubicar-left').textContent = this.pool.length - this.answered.size;
+    $('#ubicar-ok').textContent = n('ok');
+    $('#ubicar-hinted').textContent = n('hinted');
+    $('#ubicar-miss').textContent = n('fail');
+  },
+  feedback(text, kind) {
+    const el = $('#ubicar-feedback');
+    el.textContent = text;
+    el.className = `feedback ${kind}`;
+  },
+};
+
+$('#ubicar-skip').addEventListener('click', () => ubicar.reveal());
+$('#ubicar-next').addEventListener('click', () => ubicar.next());
+
 // ---------- Cambio de modo ----------
-const modes = { reto, practicar: practice };
+const modes = { reto, practicar: practice, ubicar };
 let current = null;
 
 function setMode(name) {
   if (!modes[name]) name = 'reto';
   current?.leave();
-  ['dim', 'hl', 'target', 'found', 'missed'].forEach((c) => map.clearClass(c));
+  ['dim', 'hl', 'target', 'found', 'missed', 'p-ok', 'p-hint', 'p-miss'].forEach((c) => map.clearClass(c));
   tooltip.hidden = true;
   document.body.dataset.mode = name;
   document.querySelectorAll('.tab').forEach((t) => t.classList.toggle('on', t.dataset.mode === name));

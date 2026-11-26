@@ -42,6 +42,7 @@
       <nav class="tabs" role="tablist" aria-label="Modo de juego">
         <button class="tab" role="tab" data-mode="reto">Reto</button>
         <button class="tab" role="tab" data-mode="practicar">Practicar</button>
+        <button class="tab" role="tab" data-mode="ubicar">Ubicar</button>
       </nav>
     </header>
 
@@ -60,6 +61,7 @@
       <!-- RETO -->
       <section class="hud" data-panel="reto" hidden>
         <div id="reto-drawer" class="drawer" hidden>
+          <p class="muted">Juega con el mundo entero o con uno o varios continentes.</p>
           <div class="chips" data-chips="reto" aria-label="Regi&oacute;n"></div>
           <div class="segmented" aria-label="Tiempo">
             <button data-timed="1">Contrarreloj</button>
@@ -118,6 +120,27 @@
           <button class="hud-more" data-drawer="practice-drawer" aria-expanded="false" aria-controls="practice-drawer" aria-label="Opciones" title="Opciones"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2 4h7M12.5 4H14M2 8h1.5M7 8h7M2 12h9M14 12h0" /><circle cx="10.75" cy="4" r="1.75" /><circle cx="5.25" cy="8" r="1.75" /><circle cx="12.5" cy="12" r="1.5" /></svg></button>
         </div>
       </section>
+
+      <!-- UBICAR -->
+      <section class="hud" data-panel="ubicar" hidden>
+        <div id="ubicar-drawer" class="drawer" hidden>
+          <p class="muted">Pulsa en el mapa el pa&iacute;s que se pide. Puedes fallar 3 veces; despu&eacute;s te ense&ntilde;a d&oacute;nde estaba. Elige uno o varios continentes.</p>
+          <div class="chips" data-chips="ubicar" aria-label="Regi&oacute;n"></div>
+        </div>
+        <p id="ubicar-feedback" class="feedback" aria-live="polite"></p>
+        <div id="ubicar-box" class="hud-bar">
+          <p id="ubicar-prompt" class="hud-prompt" aria-live="polite"></p>
+          <div class="hud-stats" aria-label="Ronda">
+            <span title="Te quedan"><strong id="ubicar-left">0</strong> quedan</span>
+            <span class="tally" title="A la primera"><i class="t-ok"></i><strong id="ubicar-ok">0</strong></span>
+            <span class="tally" title="Tras fallar"><i class="t-hint"></i><strong id="ubicar-hinted">0</strong></span>
+            <span class="tally" title="No encontrado"><i class="t-miss"></i><strong id="ubicar-miss">0</strong></span>
+          </div>
+          <button id="ubicar-skip" class="btn ghost">No lo s&eacute;</button>
+          <button id="ubicar-next" class="btn" hidden>Siguiente</button>
+          <button class="hud-more" data-drawer="ubicar-drawer" aria-expanded="false" aria-controls="ubicar-drawer" aria-label="Opciones" title="Opciones"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2 4h7M12.5 4H14M2 8h1.5M7 8h7M2 12h9M14 12h0" /><circle cx="10.75" cy="4" r="1.75" /><circle cx="5.25" cy="8" r="1.75" /><circle cx="12.5" cy="12" r="1.5" /></svg></button>
+        </div>
+      </section>
     </main>
 
     <article class="about">
@@ -126,10 +149,11 @@
         Este quiz gratuito te ayuda a memorizar los nombres de los <strong>197 pa&iacute;ses del mundo en espa&ntilde;ol</strong>:
         los 193 estados miembros de la ONU m&aacute;s la Ciudad del Vaticano, Palestina, Kosovo y Taiw&aacute;n. No necesitas registrarte y tu progreso se guarda en tu navegador.
       </p>
-      <h3>Dos formas de jugar</h3>
+      <h3>Tres formas de jugar</h3>
       <ul>
-        <li><strong>Reto:</strong> escribe todos los pa&iacute;ses que recuerdes antes de que se acabe el tiempo, o sin l&iacute;mite si prefieres ir con calma. Cada acierto se colorea en el mapa. Puedes jugar con el mundo entero o solo con un continente. Si no sabes cu&aacute;l es un pa&iacute;s, p&uacute;lsalo en el mapa: ver&aacute;s su nombre y contar&aacute; como fallo, para que la pr&oacute;xima vez lo recuerdes.</li>
+        <li><strong>Reto:</strong> escribe todos los pa&iacute;ses que recuerdes antes de que se acabe el tiempo, o sin l&iacute;mite si prefieres ir con calma. Cada acierto se colorea en el mapa. Puedes jugar con el mundo entero o con uno o varios continentes. Si no sabes cu&aacute;l es un pa&iacute;s, p&uacute;lsalo en el mapa: ver&aacute;s su nombre y contar&aacute; como fallo, para que la pr&oacute;xima vez lo recuerdes.</li>
         <li><strong>Practicar:</strong> el mapa marca un pa&iacute;s y tienes que adivinar cu&aacute;l es. Puedes elegir uno o varios continentes para aprenderlos poco a poco. Los que fallas vuelven a salir m&aacute;s a menudo (repetici&oacute;n espaciada) hasta que los dominas.</li>
+        <li><strong>Ubicar:</strong> te dicen un pa&iacute;s y tienes que pulsarlo en el mapa. Puedes fallar hasta 3 veces; si no lo encuentras, te ense&ntilde;a d&oacute;nde estaba. Tambi&eacute;n se juega por continentes.</li>
       </ul>
       <h3>Consejos</h3>
       <p>

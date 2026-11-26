@@ -262,7 +262,7 @@ button {
   cursor: default;
 }
 
-body[data-mode='practicar'] .reto-only {
+body:not([data-mode='reto']) .reto-only {
   display: none;
 }
 
@@ -335,6 +335,20 @@ body[data-mode='practicar'] .reto-only {
 .hud-input::placeholder {
   color: var(--ink-soft);
   font-weight: 400;
+}
+
+.hud-prompt {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  padding: 10px 0;
+  font-size: 1.15rem;
+  color: var(--ink-soft);
+}
+
+.hud-prompt strong {
+  color: var(--ink);
+  font-weight: 700;
 }
 
 .hud-input:disabled {
@@ -563,7 +577,7 @@ body[data-mode='practicar'] .reto-only {
   background: var(--oceania);
 }
 
-body[data-mode='practicar'] .legend {
+body:not([data-mode='reto']) .legend {
   display: none;
 }
 
@@ -932,7 +946,8 @@ body[data-mode='practicar'] .dot:not(.target):not(.p-ok):not(.p-hint):not(.p-mis
     gap: 4px;
   }
 
-  .hud-input {
+  .hud-input,
+  .hud-prompt {
     flex: 1 1 120px;
     font-size: 1.05rem;
   }
@@ -967,11 +982,13 @@ body[data-mode='practicar'] .dot:not(.target):not(.p-ok):not(.p-hint):not(.p-mis
     max-height: 46svh;
   }
 
-  #practice-box .btn {
+  #practice-box .btn,
+  #ubicar-box .btn {
     flex: 1;
   }
 
-  #practice-box .hud-stats {
+  #practice-box .hud-stats,
+  #ubicar-box .hud-stats {
     flex: 1 1 100%;
     order: -1;
     padding: 4px 0;
