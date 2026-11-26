@@ -111,7 +111,8 @@ const reto = {
   ids: [],
   running: false,
   ended: false,
-  left: 0,
+  timed: store.get('paises-reto-contrarreloj', true),
+  elapsed: 0,
   timer: null,
   pending: null,
 
@@ -120,6 +121,7 @@ const reto = {
       this.region = r;
       this.reset();
     });
+    this.renderTimed();
     hoverEnabled = (id) => this.ended || this.found.has(id) || this.revealed.has(id);
     onMapClick = (id, event) => id && this.reveal(id, event);
     this.reset();
@@ -136,7 +138,7 @@ const reto = {
     this.recent = [];
     this.running = false;
     this.ended = false;
-    this.left = TIME_LIMIT[this.region];
+    this.elapsed = 0;
     dimOutside(this.region);
     this.region === 'all' ? map.reset() : map.zoomToContinent(this.region);
     const input = $('#reto-input');
@@ -153,10 +155,27 @@ const reto = {
     if (this.running || this.ended) return;
     this.running = true;
     this.timer = setInterval(() => {
-      this.left--;
+      this.elapsed++;
       this.render();
-      if (this.left <= 0) this.end();
+      if (this.timed && this.left() <= 0) this.end();
     }, 1000);
+  },
+  // Segundos que quedan en contrarreloj.
+  left() {
+    return TIME_LIMIT[this.region] - this.elapsed;
+  },
+  // Los records sin limite de tiempo se guardan aparte.
+  recordKey() {
+    return this.timed ? this.region : `${this.region}-libre`;
+  },
+  setTimed(timed) {
+    this.timed = timed;
+    store.set('paises-reto-contrarreloj', timed);
+    this.renderTimed();
+    this.reset();
+  },
+  renderTimed() {
+    document.querySelectorAll('[data-timed]').forEach((b) => b.classList.toggle('on', (b.dataset.timed === '1') === this.timed));
   },
   stop() {
     clearInterval(this.timer);
@@ -229,10 +248,10 @@ const reto = {
     store.set('paises-ultimos-fallos', missed);
 
     const records = store.get('paises-records', {});
-    const prev = records[this.region];
-    const used = TIME_LIMIT[this.region] - this.left;
+    const prev = records[this.recordKey()];
+    const used = this.elapsed;
     if (!prev || this.found.size > prev.found || (this.found.size === prev.found && used < prev.time)) {
-      records[this.region] = { found: this.found.size, time: used };
+      records[this.recordKey()] = { found: this.found.size, time: used };
       store.set('paises-records', records);
     }
 
@@ -282,9 +301,9 @@ const reto = {
     $('#reto-count').textContent = this.found.size;
     $('#reto-total').textContent = `/${this.ids.length}`;
     $('#reto-miss').textContent = this.revealed.size;
-    $('#reto-timer').textContent = this.ended ? 'Fin' : fmtTime(this.left);
-    $('#reto-timer').classList.toggle('low', this.running && this.left <= 30);
-    const best = store.get('paises-records', {})[this.region];
+    $('#reto-timer').textContent = this.ended ? 'Fin' : fmtTime(this.timed ? this.left() : this.elapsed);
+    $('#reto-timer').classList.toggle('low', this.timed && this.running && this.left() <= 30);
+    const best = store.get('paises-records', {})[this.recordKey()];
     $('#reto-best').textContent = best ? `Tu r\u00e9cord: ${best.found}/${this.ids.length} en ${fmtTime(best.time)}` : '';
 
     const recent = $('#reto-recent');
@@ -355,7 +374,6 @@ const practice = {
   leave() {
     clearTimeout(this.nextTimer);
     map.clearClass('target');
-    map.setTarget(null);
   },
   start() {
     this.pool = this.region === 'fallos' ? store.get('paises-ultimos-fallos', []) : idsIn(this.region);
@@ -370,7 +388,6 @@ const practice = {
     this.renderStats();
     if (empty) {
       map.clearClass('target');
-    map.setTarget(null);
       return map.reset();
     }
     this.next();
@@ -378,7 +395,6 @@ const practice = {
   next() {
     clearTimeout(this.nextTimer);
     map.clearClass('target');
-    map.setTarget(null);
     tooltip.hidden = true;
     if (this.roundOver) return this.start();
     const remaining = this.pool.filter((id) => !this.answered.has(id));
@@ -388,7 +404,6 @@ const practice = {
     this.failed = false;
     this.done = false;
     map.setClass(this.target, 'target');
-    map.setTarget(this.target);
     map.zoomToCountry(this.target);
     const input = $('#practice-input');
     input.value = '';
@@ -507,7 +522,6 @@ const practice = {
   mark(result) {
     this.answered.set(this.target, result);
     map.setClass(this.target, 'target', false);
-    map.setTarget(null);
     map.setClass(this.target, { ok: 'p-ok', hinted: 'p-hint', fail: 'p-miss' }[result]);
     this.renderCount();
   },
@@ -557,6 +571,8 @@ $('#practice-reset').addEventListener('click', () => {
     practice.renderStats();
   }
 });
+document.querySelectorAll('[data-timed]').forEach((b) => b.addEventListener('click', () => reto.setTimed(b.dataset.timed === '1')));
+
 document.querySelectorAll('[data-pmode]').forEach((b) =>
   b.addEventListener('click', () => {
     practice.mode = b.dataset.pmode;

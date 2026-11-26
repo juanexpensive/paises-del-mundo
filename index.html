@@ -61,6 +61,10 @@
       <section class="hud" data-panel="reto" hidden>
         <div id="reto-drawer" class="drawer" hidden>
           <div class="chips" data-chips="reto" aria-label="Regi&oacute;n"></div>
+          <div class="segmented" aria-label="Tiempo">
+            <button data-timed="1">Contrarreloj</button>
+            <button data-timed="0">Sin l&iacute;mite de tiempo</button>
+          </div>
           <div id="reto-result" class="result" hidden>
             <h2 id="reto-result-title"></h2>
             <button id="reto-practice" class="btn">Practicar los que me faltaron</button>
@@ -75,7 +79,7 @@
           <div class="hud-stats" aria-label="Marcador">
             <span title="Acertados"><strong id="reto-count">0</strong><span id="reto-total">/197</span></span>
             <span class="miss" title="Fallados"><strong id="reto-miss">0</strong> fallos</span>
-            <strong id="reto-timer" class="timer" title="Tiempo restante">15:00</strong>
+            <strong id="reto-timer" class="timer" title="Tiempo">15:00</strong>
           </div>
           <button class="hud-more" data-drawer="reto-drawer" aria-expanded="false" aria-controls="reto-drawer" aria-label="Opciones" title="Opciones"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2 4h7M12.5 4H14M2 8h1.5M7 8h7M2 12h9M14 12h0" /><circle cx="10.75" cy="4" r="1.75" /><circle cx="5.25" cy="8" r="1.75" /><circle cx="12.5" cy="12" r="1.5" /></svg></button>
         </div>
@@ -123,7 +127,7 @@
       </p>
       <h3>Dos formas de jugar</h3>
       <ul>
-        <li><strong>Reto:</strong> escribe todos los pa&iacute;ses que recuerdes antes de que se acabe el tiempo. Cada acierto se colorea en el mapa. Puedes jugar con el mundo entero o solo con un continente. Si no sabes cu&aacute;l es un pa&iacute;s, p&uacute;lsalo en el mapa: ver&aacute;s su nombre y contar&aacute; como fallo, para que la pr&oacute;xima vez lo recuerdes.</li>
+        <li><strong>Reto:</strong> escribe todos los pa&iacute;ses que recuerdes antes de que se acabe el tiempo, o sin l&iacute;mite si prefieres ir con calma. Cada acierto se colorea en el mapa. Puedes jugar con el mundo entero o solo con un continente. Si no sabes cu&aacute;l es un pa&iacute;s, p&uacute;lsalo en el mapa: ver&aacute;s su nombre y contar&aacute; como fallo, para que la pr&oacute;xima vez lo recuerdes.</li>
         <li><strong>Practicar:</strong> el mapa marca un pa&iacute;s y tienes que adivinar cu&aacute;l es. Los que fallas vuelven a salir m&aacute;s a menudo (repetici&oacute;n espaciada) hasta que los dominas.</li>
       </ul>
       <h3>Consejos</h3>

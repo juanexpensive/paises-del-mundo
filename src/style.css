@@ -204,24 +204,6 @@ button {
   fill: var(--miss);
 }
 
-.target-ring {
-  fill: none;
-  stroke: var(--ink);
-  stroke-width: 2;
-  vector-effect: non-scaling-stroke;
-  pointer-events: none;
-  animation: ring 1.4s ease-out infinite;
-}
-
-@keyframes ring {
-  0% {
-    stroke-opacity: 1;
-  }
-  100% {
-    stroke-opacity: 0.15;
-  }
-}
-
 .country.flash {
   animation: flash 0.8s ease-out;
 }
@@ -261,6 +243,18 @@ button {
 
 .map-tools .tool-gap {
   margin-top: 10px;
+}
+
+/* Botones de partida con color para no confundirlos con los del zoom */
+#reto-restart {
+  background: var(--ink);
+  color: var(--paper);
+}
+
+#reto-giveup {
+  background: var(--miss);
+  border-color: var(--miss);
+  color: #fff;
 }
 
 .map-tools button:disabled {

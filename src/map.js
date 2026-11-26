@@ -1,4 +1,4 @@
-import { geoNaturalEarth1, geoPath, geoCentroid, geoGraticule10 } from 'd3-geo';
+import { geoProjection, geoPath, geoCentroid, geoGraticule10 } from 'd3-geo';
 import { feature } from 'topojson-client';
 import { select } from 'd3-selection';
 import { zoom, zoomIdentity } from 'd3-zoom';
@@ -8,7 +8,15 @@ import { BY_ID, MAP_ALIASES, MISSING_POINTS } from './countries.js';
 
 const SMALL_AREA = 30; // px2: por debajo se dibuja ademas un punto para poder verlo y pulsarlo
 const DOT_R = 3.2; // radio en pixeles de pantalla, igual con cualquier zoom
-const RING_R = 18;
+// Paises repartidos a ambos lados del corte del mapa: el punto va en la capital [lon, lat].
+const DOT_AT = { '296': [173.0, 1.4] }; // Kiribati (Tarawa)
+
+// Proyeccion de Miller: cilindrica, conserva la forma de islas y costas en los bordes y en el norte
+// (Natural Earth las aplastaba y torcia) sin agrandar tanto los polos como Mercator.
+function millerRaw(lambda, phi) {
+  return [lambda, 1.25 * Math.log(Math.tan(Math.PI / 4 + 0.4 * phi))];
+}
+millerRaw.invert = (x, y) => [x, 2.5 * Math.atan(Math.exp(0.8 * y)) - 0.625 * Math.PI];
 
 // Recuadros [lon, lat] para encuadrar cada continente (Rusia estropearia los limites automaticos de Europa).
 const CONTINENT_BOX = {
@@ -28,8 +36,8 @@ export function createMap(container, { onClick, onHover } = {}) {
   const H = Math.max(240, container.clientHeight || 520);
   const portrait = H > W;
   const land = feature(world, world.objects.countries).features.filter((f) => f.properties.name !== 'Antarctica');
-  // Girado 11 grados: el corte del mapa cae en el estrecho de Bering y no parte las islas del Pacifico.
-  const projection = geoNaturalEarth1().rotate([-11, 0]).fitExtent([[16, 16], [W - 16, H - 16]], { type: 'FeatureCollection', features: land });
+  // Girado para que el corte del mapa caiga en el estrecho de Bering y no parta las islas del Pacifico.
+  const projection = geoProjection(millerRaw).rotate([-10.2, 0]).fitExtent([[16, 16], [W - 16, H - 16]], { type: 'FeatureCollection', features: land });
   const path = geoPath(projection);
 
   const svg = select(container).append('svg').attr('viewBox', `0 0 ${W} ${H}`).attr('class', 'map');
@@ -40,7 +48,6 @@ export function createMap(container, { onClick, onHover } = {}) {
   layer.append('path').attr('class', 'graticule').attr('clip-path', 'url(#sphere-clip)').attr('d', path(geoGraticule10()));
   const shapes = layer.append('g');
   const dots = layer.append('g');
-  const ring = layer.append('circle').attr('class', 'target-ring').attr('r', RING_R).style('display', 'none');
 
   // id de pais -> { els: [elementos svg], features: [] }
   const byCode = new Map();
@@ -64,7 +71,7 @@ export function createMap(container, { onClick, onHover } = {}) {
     const area = e.features.reduce((sum, f) => sum + path.area(f), 0);
     if (area < SMALL_AREA) {
       const biggest = e.features.reduce((a, b) => (path.area(b) > path.area(a) ? b : a));
-      addDot(id, projection(geoCentroid(biggest)));
+      addDot(id, projection(DOT_AT[id] ?? geoCentroid(biggest)));
     }
   }
   for (const [id, lonLat] of Object.entries(MISSING_POINTS)) addDot(id, projection(lonLat));
@@ -90,7 +97,6 @@ export function createMap(container, { onClick, onHover } = {}) {
       k = event.transform.k;
       layer.attr('transform', event.transform);
       dots.selectAll('circle').attr('r', DOT_R / k);
-      ring.attr('r', RING_R / k);
     });
   svg.call(zoomer).on('dblclick.zoom', null);
 
@@ -149,15 +155,6 @@ export function createMap(container, { onClick, onHover } = {}) {
     },
     zoomBy(factor) {
       svg.transition().duration(250).call(zoomer.scaleBy, factor);
-    },
-    // Anillo que senala el pais a adivinar (se ve aunque el pais sea un punto).
-    setTarget(id) {
-      const e = id && byCode.get(id);
-      if (!e) return ring.style('display', 'none');
-      const biggest = e.features.length ? e.features.reduce((a, b) => (path.area(b) > path.area(a) ? b : a)) : null;
-      if (!e.point && path.area(biggest) > 900) return ring.style('display', 'none');
-      const [x, y] = e.point ?? path.centroid(biggest);
-      ring.attr('cx', x).attr('cy', y).style('display', null);
     },
     reset() {
       if (portrait) return fit(projectBox(PORTRAIT_HOME));
