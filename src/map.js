@@ -149,9 +149,17 @@ export function createMap(container, { onClick, onHover } = {}) {
       const b = boundsOf(id);
       if (b) fit(b, { minSize: portrait ? W * 0.32 : Math.min(W, H) * 0.45, maxScale: 10 });
     },
-    zoomToContinent(continent) {
-      if (!CONTINENT_BOX[continent]) return this.reset();
-      fit(projectBox(CONTINENT_BOX[continent]));
+    // Encuadra uno o varios continentes.
+    zoomToContinent(continents) {
+      const boxes = [continents].flat().map((c) => CONTINENT_BOX[c]).filter(Boolean);
+      if (!boxes.length) return this.reset();
+      const box = projectBox(boxes[0]);
+      for (const b of boxes.slice(1)) {
+        const [[x0, y0], [x1, y1]] = projectBox(b);
+        box[0] = [Math.min(box[0][0], x0), Math.min(box[0][1], y0)];
+        box[1] = [Math.max(box[1][0], x1), Math.max(box[1][1], y1)];
+      }
+      fit(box);
     },
     zoomBy(factor) {
       svg.transition().duration(250).call(zoomer.scaleBy, factor);

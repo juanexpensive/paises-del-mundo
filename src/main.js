@@ -28,7 +28,10 @@ const store = {
 };
 
 const REGIONS = [{ id: 'all', label: 'Todo el mundo' }, ...CONTINENTS];
-const idsIn = (region) => COUNTRIES.filter((c) => region === 'all' || c.continent === region).map((c) => c.id);
+// Region: 'all', 'fallos' o uno o varios continentes separados por comas ("Africa,Europa").
+const continentsOf = (region) => (region === 'all' || region === 'fallos' ? null : region.split(','));
+const idsIn = (region) => COUNTRIES.filter((c) => !continentsOf(region) || continentsOf(region).includes(c.continent)).map((c) => c.id);
+const zoomRegion = (region) => (continentsOf(region) ? map.zoomToContinent(continentsOf(region)) : map.reset());
 
 // ---------- Mapa y etiqueta ----------
 const tooltip = $('#tooltip');
@@ -59,8 +62,7 @@ document.querySelectorAll('[data-zoom]').forEach((b) =>
     const z = b.dataset.zoom;
     if (z === 'reset') {
       // Encuadra la region con la que estas jugando.
-      const region = current?.region ?? 'all';
-      CONTINENTS.some((c) => c.id === region) ? map.zoomToContinent(region) : map.reset();
+      zoomRegion(current?.region ?? 'all');
     }
     else map.zoomBy(z === 'in' ? 1.8 : 1 / 1.8);
   }),
@@ -68,8 +70,9 @@ document.querySelectorAll('[data-zoom]').forEach((b) =>
 
 function dimOutside(region) {
   map.clearClass('dim');
-  if (region === 'all' || region === 'fallos') return;
-  for (const c of COUNTRIES) if (c.continent !== region) map.setClass(c.id, 'dim');
+  const conts = continentsOf(region);
+  if (!conts) return;
+  for (const c of COUNTRIES) if (!conts.includes(c.continent)) map.setClass(c.id, 'dim');
 }
 
 function chips(name, options, current, onChange) {
@@ -140,7 +143,7 @@ const reto = {
     this.ended = false;
     this.elapsed = 0;
     dimOutside(this.region);
-    this.region === 'all' ? map.reset() : map.zoomToContinent(this.region);
+    zoomRegion(this.region);
     const input = $('#reto-input');
     input.disabled = false;
     input.value = '';
@@ -347,7 +350,7 @@ $('#reto-practice').addEventListener('click', () => {
 
 // ---------- PRACTICAR ----------
 const practice = {
-  region: 'all',
+  region: store.get('paises-region-practica', 'all'),
   mode: store.get('paises-modo-practica', 'escribir'),
   pool: [],
   target: null,
@@ -361,11 +364,7 @@ const practice = {
   roundOver: false,
 
   enter() {
-    const regions = [...REGIONS, { id: 'fallos', label: '\u00daltimos fallos' }];
-    chips('practicar', regions, this.region, (r) => {
-      this.region = r;
-      this.start();
-    });
+    this.renderChips();
     hoverEnabled = (id) => this.answered.has(id) || (this.done && id === this.target);
     onMapClick = () => {};
     this.renderMode();
@@ -374,6 +373,35 @@ const practice = {
   leave() {
     clearTimeout(this.nextTimer);
     map.clearClass('target');
+  },
+  // Chips de region: los continentes se pueden combinar; Todo el mundo y Ultimos fallos van solos.
+  renderChips() {
+    const box = document.querySelector('[data-chips="practicar"]');
+    box.innerHTML = '';
+    const selected = continentsOf(this.region) ?? [];
+    for (const o of [...REGIONS, { id: 'fallos', label: '\u00daltimos fallos' }]) {
+      const isCont = CONTINENTS.some((c) => c.id === o.id);
+      const on = isCont ? selected.includes(o.id) : this.region === o.id;
+      const b = document.createElement('button');
+      b.className = 'chip' + (on ? ' on' : '');
+      b.textContent = o.label;
+      b.setAttribute('aria-pressed', String(on));
+      b.addEventListener('click', () => {
+        let next = o.id;
+        if (isCont) {
+          const set = on ? selected.filter((c) => c !== o.id) : [...selected, o.id];
+          next = set.length ? CONTINENTS.map((c) => c.id).filter((c) => set.includes(c)).join(',') : 'all';
+        }
+        this.setRegion(next);
+      });
+      box.append(b);
+    }
+  },
+  setRegion(region) {
+    this.region = region;
+    store.set('paises-region-practica', region === 'fallos' ? 'all' : region);
+    this.renderChips();
+    this.start();
   },
   start() {
     this.pool = this.region === 'fallos' ? store.get('paises-ultimos-fallos', []) : idsIn(this.region);
@@ -537,7 +565,7 @@ const practice = {
     $('#practice-next').hidden = false;
     $('#practice-next').textContent = 'Otra ronda';
     $('#practice-next').focus();
-    this.region === 'all' || this.region === 'fallos' ? map.reset() : map.zoomToContinent(this.region);
+    zoomRegion(this.region);
   },
   renderCount() {
     const n = (r) => [...this.answered.values()].filter((v) => v === r).length;
