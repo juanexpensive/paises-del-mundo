@@ -115,6 +115,32 @@ const countOf = (answered, result) => [...answered.values()].filter((v) => v ===
 
 const fmtTime = (s) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
 
+// Cronometro de una ronda: cuenta desde la primera respuesta hasta que se para.
+function stopwatch(el) {
+  let seconds = 0;
+  let timer = null;
+  const render = () => (el.textContent = fmtTime(seconds));
+  return {
+    text: () => fmtTime(seconds),
+    start() {
+      if (timer) return;
+      timer = setInterval(() => {
+        seconds++;
+        render();
+      }, 1000);
+    },
+    stop() {
+      clearInterval(timer);
+      timer = null;
+    },
+    reset() {
+      this.stop();
+      seconds = 0;
+      render();
+    },
+  };
+}
+
 // Paneles plegables (boton Mas)
 function setDrawer(id, open) {
   const drawer = document.getElementById(id);
@@ -388,6 +414,7 @@ const practice = {
   nextTimer: null,
   answered: new Map(), // id -> ok | hinted | fail en la ronda actual
   roundOver: false,
+  clock: stopwatch($('#practice-time')),
 
   enter() {
     this.renderChips();
@@ -398,6 +425,7 @@ const practice = {
   },
   leave() {
     clearTimeout(this.nextTimer);
+    this.clock.stop();
     map.clearClass('target');
   },
   renderChips() {
@@ -414,6 +442,7 @@ const practice = {
     this.recent = [];
     this.answered.clear();
     this.roundOver = false;
+    this.clock.reset();
     ['p-ok', 'p-hint', 'p-miss'].forEach((c) => map.clearClass(c));
     dimOutside(this.region);
     const empty = this.pool.length === 0;
@@ -475,6 +504,7 @@ const practice = {
       b.textContent = nameOf(id);
       b.addEventListener('click', () => {
         if (this.done) return;
+        this.clock.start();
         if (id === this.target) {
           b.classList.add('right');
           this.correct();
@@ -490,6 +520,7 @@ const practice = {
   },
   onInput(value) {
     if (this.done) return;
+    if (value.trim()) this.clock.start();
     if (matcher.find(value) === this.target) this.correct();
   },
   onEnter(value) {
@@ -505,6 +536,7 @@ const practice = {
   },
   showHint() {
     if (this.done) return;
+    this.clock.start();
     const name = nameOf(this.target);
     if (this.mode === 'opciones') {
       // En modo opciones la pista elimina una opcion incorrecta.
@@ -539,6 +571,7 @@ const practice = {
   },
   skip() {
     if (this.done) return;
+    this.clock.start();
     this.done = true;
     progress.record(this.target, 'fail');
     this.mark('fail');
@@ -562,8 +595,9 @@ const practice = {
   finishRound() {
     this.roundOver = true;
     this.target = null;
+    this.clock.stop();
     const n = (r) => countOf(this.answered, r);
-    this.feedback(`Ronda terminada: ${n('ok')} bien, ${n('hinted')} con pista y ${n('fail')} mal.`, n('fail') ? '' : 'good');
+    this.feedback(`Ronda terminada en ${this.clock.text()}: ${n('ok')} bien, ${n('hinted')} con pista y ${n('fail')} mal.`, n('fail') ? '' : 'good');
     $('#practice-input').disabled = true;
     $('#practice-options').innerHTML = '';
     $('#practice-hint').hidden = true;
@@ -627,6 +661,7 @@ const ubicar = {
   done: false,
   roundOver: false,
   nextTimer: null,
+  clock: stopwatch($('#ubicar-time')),
   answered: new Map(), // id -> ok (a la primera) | hinted (tras fallar) | fail (no encontrado)
 
   enter() {
@@ -636,6 +671,7 @@ const ubicar = {
   },
   leave() {
     clearTimeout(this.nextTimer);
+    this.clock.stop();
   },
   start() {
     regionChips('ubicar', this.region, (r) => {
@@ -648,6 +684,7 @@ const ubicar = {
     this.answered.clear();
     this.target = null;
     this.roundOver = false;
+    this.clock.reset();
     ['p-ok', 'p-hint', 'p-miss', 'target'].forEach((c) => map.clearClass(c));
     dimOutside(this.region);
     zoomRegion(this.region);
@@ -674,6 +711,7 @@ const ubicar = {
   },
   guess(id, event) {
     if (this.done || !this.target) return;
+    this.clock.start();
     if (id === this.target) return this.found();
     this.misses++;
     pinTip(id, event, 'bad');
@@ -694,6 +732,7 @@ const ubicar = {
   // Sin intentos o con "No lo se": ensena donde estaba.
   reveal(prefix = '') {
     if (this.done || !this.target) return;
+    this.clock.start();
     this.done = true;
     this.mark('fail');
     map.setClass(this.target, 'target');
@@ -712,8 +751,9 @@ const ubicar = {
   finishRound() {
     this.roundOver = true;
     this.target = null;
+    this.clock.stop();
     const n = (r) => countOf(this.answered, r);
-    $('#ubicar-prompt').textContent = 'Ronda terminada';
+    $('#ubicar-prompt').textContent = `Ronda terminada en ${this.clock.text()}`;
     this.feedback(`${n('ok')} a la primera, ${n('hinted')} tras fallar y ${n('fail')} sin encontrar.`, n('fail') ? '' : 'good');
     $('#ubicar-skip').hidden = true;
     $('#ubicar-next').textContent = 'Otra ronda';
